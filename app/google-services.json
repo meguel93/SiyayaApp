@@ -1,0 +1,59 @@
+{
+  "project_info": {
+    "project_number": "254259471635",
+    "firebase_url": "https://project-caef5.firebaseio.com",
+    "project_id": "project-caef5",
+    "storage_bucket": "project-caef5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:254259471635:android:08a46cf23173934d",
+        "android_client_info": {
+          "package_name": "com.example.valtron.siyayaapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "254259471635-5qho8c2fiqsh3tj6i0furjjf0elpjgqb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.valtron.siyayaapp",
+            "certificate_hash": "d4c686bd90c5eba529e74604334dd3dc0cd3f0dc"
+          }
+        },
+        {
+          "client_id": "254259471635-cpp73vtrladndofmh54p3kvust02g7od.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "254259471635-cpp73vtrladndofmh54p3kvust02g7od.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO70wRZVOIypFwk4lX67_IrFl0k_aKpiw"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "254259471635-cpp73vtrladndofmh54p3kvust02g7od.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
