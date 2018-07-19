@@ -146,7 +146,7 @@ public class CommuterCall extends AppCompatActivity {
             mService.getPath(requestApi)
                     .enqueue(new Callback<String>() {
                         @Override
-                        public void onResponse(retrofit2.Call<String> call, retrofit2.Response<String> response) {
+                        public void onResponse(Call<String> call, Response<String> response) {
                             try {
                                 JSONObject jsonObject = new JSONObject(response.body().toString());
 
@@ -173,7 +173,7 @@ public class CommuterCall extends AppCompatActivity {
                         }
 
                         @Override
-                        public void onFailure(retrofit2.Call<String> call, Throwable t) {
+                        public void onFailure(Call<String> call, Throwable t) {
                             Toast.makeText(CommuterCall.this, ""+t.getMessage(), Toast.LENGTH_SHORT).show();
                         }
                     });

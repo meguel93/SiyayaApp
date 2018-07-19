@@ -52,7 +52,6 @@
             android:name=".Home"
             android:label="@string/title_activity_home"
             android:theme="@style/AppTheme" />
-        <activity android:name=".CommuterCall" />
 
         <service android:name=".Service.MyFirebaseIdService">
             <intent-filter>
@@ -67,7 +66,11 @@
 
         <activity
             android:name=".DriverTracking"
-            android:label="@string/title_activity_driver_tracking"></activity>
+            android:label="@string/title_activity_driver_tracking" />
+        <activity
+            android:name=".DriverHome"
+            android:label="@string/title_activity_driver_home"
+            android:theme="@style/AppTheme"></activity>
     </application>
 
 </manifest>
