@@ -24,6 +24,7 @@ public class Common {
 
     public static final String baseURL = "https://maps.googleapis.com";
     public static final String fcmURL = "https://fcm.googleapis.com/";
+    public static final int PICK_IMAGE_REQUEST = 9999;
 
     public static IGoogleAPI getGoogleAPI()
     {

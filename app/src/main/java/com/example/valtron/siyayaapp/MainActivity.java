@@ -139,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
-    private void showSignIn() {
+    private void showSignIn()  {
         final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
         dialog.setTitle("SIGN IN ");
         dialog.setMessage("Please use email to sign in");
@@ -193,6 +193,8 @@ public class MainActivity extends AppCompatActivity {
                                             @Override
                                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                                                 Common.currentUser = dataSnapshot.getValue(User.class);
+                                                startActivity(new Intent(MainActivity.this, DriverHome.class));
+                                                finish();
                                             }
 
                                             @Override
@@ -200,9 +202,6 @@ public class MainActivity extends AppCompatActivity {
 
                                             }
                                         });
-
-                                startActivity(new Intent(MainActivity.this, DriverHome.class));
-                                finish();
                             }
                         })
                         .addOnFailureListener(new OnFailureListener() {
