@@ -17,6 +17,9 @@ public class Common {
     public static final String user_rider_tbl = "RidersInformation";
     public static final String pickup_request_tbl = "PickupRequest";
     public static final String token_tbl = "Tokens";
+    public static final String user_field = "usr";
+    public static final String pwd_field = "pwd";
+    //public static final String user_field;
 
     public static User currentUser;
 

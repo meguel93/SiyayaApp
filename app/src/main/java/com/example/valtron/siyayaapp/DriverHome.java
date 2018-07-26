@@ -103,6 +103,7 @@ import java.util.UUID;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 import dmax.dialog.SpotsDialog;
+import io.paperdb.Paper;
 import retrofit2.Callback;
 
 import static com.google.android.gms.location.LocationServices.FusedLocationApi;
@@ -926,6 +927,10 @@ public class DriverHome extends AppCompatActivity
     }
 
     private void signout() {
+        //Reset remeber me value
+        Paper.init(this);
+        Paper.book().destroy();
+
         FirebaseAuth.getInstance().signOut();
         Intent intent = new Intent(DriverHome.this,MainActivity.class);
         startActivity(intent);

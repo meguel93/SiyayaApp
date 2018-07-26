@@ -33,6 +33,7 @@ import com.google.firebase.database.ValueEventListener;
 import com.rengwuxian.materialedittext.MaterialEditText;
 
 import dmax.dialog.SpotsDialog;
+import io.paperdb.Paper;
 import uk.co.chrisjenx.calligraphy.CalligraphyConfig;
 import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
@@ -59,6 +60,8 @@ public class MainActivity extends AppCompatActivity {
                 .setFontAttrId(R.attr.fontPath)
                 .build());
         setContentView(R.layout.activity_main);
+
+        Paper.init(this);
 
         auth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance();
@@ -89,6 +92,56 @@ public class MainActivity extends AppCompatActivity {
                 showSignIn();
             }
         });
+
+        String user = Paper.book().read(Common.user_field);
+        String pwd = Paper.book().read(Common.pwd_field);
+
+        if(user != null && pwd != null)
+            if(!TextUtils.isEmpty(user) && !TextUtils.isEmpty(pwd))
+                autoLogin(user, pwd);
+    }
+
+    private void autoLogin(String user, String pwd) {
+
+        final SpotsDialog waitingDialog = new SpotsDialog(MainActivity.this);
+        waitingDialog.show();
+
+        auth.signInWithEmailAndPassword(user, pwd)
+                .addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+                    @Override
+                    public void onSuccess(AuthResult authResult) {
+                        waitingDialog.dismiss();
+
+                        FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl)
+                                .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                                .addListenerForSingleValueEvent(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                        Common.currentUser = dataSnapshot.getValue(User.class);
+                                        startActivity(new Intent(MainActivity.this, DriverHome.class));
+                                        waitingDialog.dismiss();
+                                        finish();
+                                    }
+
+                                    @Override
+                                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        waitingDialog.dismiss();
+                        Snackbar.make(rootDriverLayout,"Failed"+e.getMessage(),Snackbar.LENGTH_SHORT)
+                                .show();
+
+                        btnSignIn.setEnabled(true);
+                    }
+                });
+
+
     }
 
     private void showForgotPwdDialog() {
@@ -192,6 +245,9 @@ public class MainActivity extends AppCompatActivity {
                                         .addListenerForSingleValueEvent(new ValueEventListener() {
                                             @Override
                                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                                Paper.book().write(Common.user_field, edtEmail.getText().toString());
+                                                Paper.book().write(Common.pwd_field, edtPassword.getText().toString());
+
                                                 Common.currentUser = dataSnapshot.getValue(User.class);
                                                 startActivity(new Intent(MainActivity.this, DriverHome.class));
                                                 finish();
