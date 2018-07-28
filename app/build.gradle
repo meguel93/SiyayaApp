@@ -32,6 +32,7 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
     //Libraries
+    implementation 'com.facebook.android:account-kit-sdk:4.+'
     implementation 'io.paperdb:paperdb:2.6'
     implementation 'com.squareup.picasso:picasso:2.5.2'
     implementation 'com.google.maps.android:android-maps-utils:0.5+'

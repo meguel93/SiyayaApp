@@ -41,7 +41,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="20dp"
         android:layout_marginTop="20dp"
-        android:text="FORGOT PASSWORD?"
+        android:text="(c) 2019 by VINTAJE101 Technologies"
         android:textSize="12sp"
         android:textAlignment="center"
         android:textColor="@color/buttomText"
@@ -50,22 +50,22 @@
 
     <LinearLayout
         android:orientation="horizontal"
-        android:weightSum="2"
+        android:weightSum="1"
         android:layout_above="@+id/txt_forgot_password"
         android:layout_margin="16dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
         <Button
-            android:id="@+id/btnSignIn"
+            android:id="@+id/btnContinue"
             android:background="@drawable/btn_sign_in_background"
             android:textColor="@android:color/white"
-            android:text="SIGN IN"
+            android:text="CONTINUE..."
             android:layout_marginRight="6dp"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content" />
-
+<!--
         <Button
             android:id="@+id/btnRegister"
             android:background="@drawable/btn_register_background"
@@ -74,6 +74,6 @@
             android:layout_marginRight="6dp"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content" />-->
     </LinearLayout>
 </RelativeLayout>

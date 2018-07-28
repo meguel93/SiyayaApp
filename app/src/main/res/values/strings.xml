@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SiyayaApp</string>
+    <string name="app_name">Siyaya Driver</string>
     <string name="title_activity_welcome">Map</string>
     <string name="google_direction_api">AIzaSyBO70wRZVOIypFwk4lX67_IrFl0k_aKpiw</string>
     <string name="title_activity_commuter__welcome">Map</string>
@@ -12,4 +12,6 @@
     <string name="action_settings">Settings</string>
     <string name="title_activity_driver_tracking">Map</string>
     <string name="title_activity_driver_home">DriverHome</string>
+    <string name="FACEBOOK_APP_ID">616353535425943</string>
+    <string name="ACCOUNT_KIT_CLIENT_TOKEN">fffd8428d33b72575a340918e7c64266</string>
 </resources>
