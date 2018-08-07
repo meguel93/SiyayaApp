@@ -32,9 +32,10 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
     //Libraries
-    implementation 'com.facebook.android:account-kit-sdk:4.+'
+    implementation 'com.facebook.android:account-kit-sdk:4.35.0'
     implementation 'io.paperdb:paperdb:2.6'
     implementation 'com.squareup.picasso:picasso:2.5.2'
+    //noinspection GradleDynamicVersion
     implementation 'com.google.maps.android:android-maps-utils:0.5+'
     implementation 'de.hdodenhof:circleimageview:2.2.0'
     implementation 'com.squareup.retrofit2:retrofit:2.3.0'
@@ -51,10 +52,10 @@ dependencies {
     implementation 'uk.co.chrisjenx:calligraphy:2.3.0'
     implementation 'com.rengwuxian.materialedittext:library:2.1.4'
     implementation 'com.google.android.gms:play-services-analytics:16.0.1'
-
+    implementation 'com.google.android.gms:play-services-auth:15.0.1'
     implementation "com.google.android.gms:play-services-maps:15.0.1"
     implementation "com.google.android.gms:play-services-location:15.0.1"
-    //implementation "com.google.android.gms:play-services:15.0.1"
+    implementation "com.applozic.communication.uiwidget:mobicomkitui:5.8.4"
     api "com.google.android.gms:play-services-places:15.0.1"
 
 }
