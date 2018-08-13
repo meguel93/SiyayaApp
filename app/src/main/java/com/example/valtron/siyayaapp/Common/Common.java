@@ -2,7 +2,7 @@ package com.example.valtron.siyayaapp.Common;
 
 import android.location.Location;
 
-import com.example.valtron.siyayaapp.Model.User;
+import com.example.valtron.siyayaapp.Model.SiyayaDriver;
 import com.example.valtron.siyayaapp.Retrofit.FCMClient;
 import com.example.valtron.siyayaapp.Retrofit.IFCMService;
 import com.example.valtron.siyayaapp.Retrofit.IGoogleAPI;
@@ -21,7 +21,7 @@ public class Common {
     public static final String pwd_field = "pwd";
     //public static final String user_field;
 
-    public static User currentUser;
+    public static SiyayaDriver currentDriver;
 
     public static Location mLastLocation = null;
 

@@ -1,27 +1,23 @@
 package com.example.valtron.siyayaapp;
 
 import android.Manifest;
-import android.animation.ValueAnimator;
 import android.app.ProgressDialog;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.AsyncTask;
-import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.animation.LinearInterpolator;
 import android.widget.Toast;
 
 import com.example.valtron.siyayaapp.Common.Common;
 import com.example.valtron.siyayaapp.Helper.DirectionJSONParser;
+import com.example.valtron.siyayaapp.Model.DataMessage;
 import com.example.valtron.siyayaapp.Model.FCMResponse;
-import com.example.valtron.siyayaapp.Model.Notification;
-import com.example.valtron.siyayaapp.Model.Sender;
 import com.example.valtron.siyayaapp.Model.Token;
 import com.example.valtron.siyayaapp.Retrofit.IFCMService;
 import com.example.valtron.siyayaapp.Retrofit.IGoogleAPI;
@@ -35,7 +31,6 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -43,25 +38,21 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
-import com.google.android.gms.maps.model.JointType;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.android.gms.maps.model.SquareCap;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -132,7 +123,8 @@ public class DriverTracking extends FragmentActivity implements OnMapReadyCallba
         .fillColor(0x220000FF)
         .strokeWidth(5.0f));
 
-        geoFire = new GeoFire(FirebaseDatabase.getInstance().getReference(Common.driver_tbl));
+        geoFire = new GeoFire(FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
+        .child(Common.currentDriver.getRoute()));
         GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(riderLat, riderLng), 0.05f);
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             @Override
@@ -165,11 +157,16 @@ public class DriverTracking extends FragmentActivity implements OnMapReadyCallba
 
     private void ArrivedNotification(String customerId) {
         Token token = new Token(customerId);
-        Notification notification = new Notification("Arrived",String
-                .format("The driver %s has arrived at your location", Common.currentUser.getName()));
-        Sender sender = new Sender(token.getToken(), notification);
+        /*Notification notification = new Notification("Arrived",String
+                .format("The driver %s has arrived at your location", Common.currentDriver.getName()));
+        Sender sender = new Sender(token.getToken(), notification);*/
 
-        mFCMService.sendMessage(sender).enqueue(new Callback<FCMResponse>() {
+        Map<String,String> content = new HashMap<>();
+        content.put("title", "Arrived");
+        content.put("message", String.format("The driver %s has arrived at your location", Common.currentDriver.getName()));
+        DataMessage dataMessage = new DataMessage(token.getToken(), content);
+
+        mFCMService.sendMessage(dataMessage).enqueue(new Callback<FCMResponse>() {
             @Override
             public void onResponse(Call<FCMResponse> call, Response<FCMResponse> response) {
                 if(response.body().success != 1) {

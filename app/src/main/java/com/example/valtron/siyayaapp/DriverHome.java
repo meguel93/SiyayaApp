@@ -14,8 +14,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
@@ -33,12 +31,13 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.animation.LinearInterpolator;
 import android.widget.ImageView;
+import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.valtron.siyayaapp.Common.Common;
+import com.example.valtron.siyayaapp.Model.SiyayaDriver;
 import com.example.valtron.siyayaapp.Model.Token;
-import com.example.valtron.siyayaapp.Model.User;
 import com.example.valtron.siyayaapp.Retrofit.IGoogleAPI;
 import com.facebook.accountkit.Account;
 import com.facebook.accountkit.AccountKit;
@@ -47,13 +46,10 @@ import com.facebook.accountkit.AccountKitError;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.github.kmenager.materialanimatedswitch.MaterialAnimatedSwitch;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
@@ -78,13 +74,8 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.SquareCap;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.AuthCredential;
-import com.google.firebase.auth.AuthResult;
-import com.google.firebase.auth.EmailAuthProvider;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -111,10 +102,7 @@ import java.util.UUID;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 import dmax.dialog.SpotsDialog;
-import io.paperdb.Paper;
 import retrofit2.Callback;
-
-import static com.google.android.gms.location.LocationServices.FusedLocationApi;
 
 public class DriverHome extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
@@ -243,10 +231,10 @@ public class DriverHome extends AppCompatActivity
         TextView txtName = (TextView) navigationHeaderView.findViewById(R.id.txtDriverName);
         CircleImageView imageAvatar = (CircleImageView) navigationHeaderView.findViewById(R.id.image_avatar);
 
-        txtName.setText(Common.currentUser.getName());
-        if (Common.currentUser.getAvatarUrl() != null && !TextUtils.isEmpty(Common.currentUser.getAvatarUrl()))
+        txtName.setText(Common.currentDriver.getName());
+        if (Common.currentDriver.getAvatarUrl() != null && !TextUtils.isEmpty(Common.currentDriver.getAvatarUrl()))
             Picasso.with(this)
-                    .load(Common.currentUser.getAvatarUrl())
+                    .load(Common.currentDriver.getAvatarUrl())
                     .into(imageAvatar);
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -339,7 +327,7 @@ public class DriverHome extends AppCompatActivity
             }
         });
 
-        drivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl);
+        drivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(Common.currentDriver.getRoute());
         geoFire = new GeoFire(drivers);
 
         setUpLocation();
@@ -661,8 +649,8 @@ public class DriverHome extends AppCompatActivity
 
         if (id == R.id.nav_trip_history) {
             // Handle the camera action
-        } else if (id == R.id.nav_help) {
-
+        } else if (id == R.id.nav_route) {
+            showRouteDialog();
         } else if (id == R.id.nav_settings) {
 
         } else if (id == R.id.nav_sing_out) {
@@ -676,6 +664,151 @@ public class DriverHome extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    private void showRouteDialog() {
+        final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+        dialog.setTitle("Choose Your Route");
+        //dialog.setMessage("Please use email to sign in");
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View layout_route = inflater.inflate(R.layout.layout_update_route, null);
+
+        final RadioButton town = layout_route.findViewById(R.id.town_route);
+        final RadioButton central = layout_route.findViewById(R.id.central_route);
+        final RadioButton summer = layout_route.findViewById(R.id.summer_route);
+        final RadioButton forest = layout_route.findViewById(R.id.forest_route);
+        final RadioButton green = layout_route.findViewById(R.id.green_route);
+
+        if(Common.currentDriver.getRoute().equals("Town"))
+            town.setChecked(true);
+        if(Common.currentDriver.getRoute().equals("Central"))
+            central.setChecked(true);
+        if(Common.currentDriver.getRoute().equals("Summerstrand"))
+            summer.setChecked(true);
+        if(Common.currentDriver.getRoute().equals("Forest Hill"))
+            forest.setChecked(true);
+        if(Common.currentDriver.getRoute().equals("Greenacres"))
+            green.setChecked(true);
+        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+            @Override
+            public void onSuccess(Account account) {
+
+                Map<String, Object> updateInfo = new HashMap<>();
+                if (town.isChecked())
+                    updateInfo.put("route", town.getText().toString());
+                if (central.isChecked())
+                    updateInfo.put("route", central.getText().toString());
+                if (summer.isChecked())
+                    updateInfo.put("route", summer.getText().toString());
+                if (forest.isChecked())
+                    updateInfo.put("route", forest.getText().toString());
+                if (green.isChecked())
+                    updateInfo.put("route", green.getText().toString());
+
+                DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
+                driverInformation.child(account.getId())
+                        .updateChildren(updateInfo)
+                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                if (task.isSuccessful())
+                                    Toast.makeText(DriverHome.this, "Route Updated!", Toast.LENGTH_SHORT).show();
+                                else
+                                    Toast.makeText(DriverHome.this, "Route Updated error!", Toast.LENGTH_SHORT).show();
+
+                                //waitingDialog.dismiss();
+                            }
+                        });
+                driverInformation.child(account.getId())
+                        .addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                Common.currentDriver = dataSnapshot.getValue(SiyayaDriver.class);
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                            }
+                        });
+            }
+
+            @Override
+            public void onError(AccountKitError accountKitError) {
+
+            }
+        });
+
+        dialog.setView(layout_route);
+
+        dialog.setPositiveButton("UPDATE", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                final android.app.AlertDialog waitingDialog = new SpotsDialog(DriverHome.this);
+                waitingDialog.show();
+
+                AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+                    @Override
+                    public void onSuccess(Account account) {
+
+                        Map<String, Object> updateInfo = new HashMap<>();
+                        if (town.isChecked())
+                            updateInfo.put("route", town.getText().toString());
+                        if (central.isChecked())
+                            updateInfo.put("route", central.getText().toString());
+                        if (summer.isChecked())
+                            updateInfo.put("route", summer.getText().toString());
+                        if (forest.isChecked())
+                            updateInfo.put("route", forest.getText().toString());
+                        if (green.isChecked())
+                            updateInfo.put("route", green.getText().toString());
+
+                        DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
+                        driverInformation.child(account.getId())
+                                .updateChildren(updateInfo)
+                                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<Void> task) {
+                                        if (task.isSuccessful())
+                                            Toast.makeText(DriverHome.this, "Route Updated!", Toast.LENGTH_SHORT).show();
+                                        else
+                                            Toast.makeText(DriverHome.this, "Route Updated error!", Toast.LENGTH_SHORT).show();
+
+                                        waitingDialog.dismiss();
+                                    }
+                                });
+                        driverInformation.child(account.getId())
+                                .addListenerForSingleValueEvent(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                        Common.currentDriver = dataSnapshot.getValue(SiyayaDriver.class);
+                                    }
+
+                                    @Override
+                                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                    }
+                                });
+                    }
+
+                    @Override
+                    public void onError(AccountKitError accountKitError) {
+
+                    }
+                });
+            }
+        });
+
+        dialog.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        dialog.show();
     }
 
     private void showUpdateInfoDialog() {
@@ -868,7 +1001,7 @@ public class DriverHome extends AppCompatActivity
         mMap.setIndoorEnabled(false);
         mMap.setBuildingsEnabled(false);
         mMap.getUiSettings().setZoomControlsEnabled(true);
-        mGoogleApiClient.connect();
+        //mGoogleApiClient.connect();
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
@@ -878,6 +1011,24 @@ public class DriverHome extends AppCompatActivity
         fusedLocationProviderClient.requestLocationUpdates(mLocationRequest, locationCallback, Looper.myLooper());
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*
 
     @Override

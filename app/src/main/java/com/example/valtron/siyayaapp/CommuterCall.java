@@ -16,9 +16,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.valtron.siyayaapp.Common.Common;
+import com.example.valtron.siyayaapp.Model.DataMessage;
 import com.example.valtron.siyayaapp.Model.FCMResponse;
-import com.example.valtron.siyayaapp.Model.Notification;
-import com.example.valtron.siyayaapp.Model.Sender;
 import com.example.valtron.siyayaapp.Model.Token;
 import com.example.valtron.siyayaapp.Retrofit.IFCMService;
 import com.example.valtron.siyayaapp.Retrofit.IGoogleAPI;
@@ -36,7 +35,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -108,10 +109,14 @@ public class CommuterCall extends AppCompatActivity {
     private void cancelBooking(String customerId) {
         Token token = new Token(customerId);
 
-        Notification notification = new Notification("Cancelled","Driver has cancelled your request");
-        Sender sender = new Sender(token.getToken(), notification);
+        /*Notification notification = new Notification("Cancelled","SiyayaDriver has cancelled your request");
+        Sender sender = new Sender(token.getToken(), notification);*/
+        Map<String,String> content = new HashMap<>();
+        content.put("title", "Cancel");
+        content.put("message", "SiyayaDriver has cancelled your request");
+        DataMessage dataMessage = new DataMessage(token.getToken(), content);
 
-        mFCMService.sendMessage(sender)
+        mFCMService.sendMessage(dataMessage)
                 .enqueue(new Callback<FCMResponse>() {
                     @Override
                     public void onResponse(Call<FCMResponse> call, Response<FCMResponse> response) {

@@ -2,29 +2,22 @@ package com.example.valtron.siyayaapp;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.valtron.siyayaapp.Common.Common;
-import com.example.valtron.siyayaapp.Model.User;
+import com.example.valtron.siyayaapp.Model.SiyayaDriver;
 import com.facebook.accountkit.Account;
 import com.facebook.accountkit.AccountKit;
 import com.facebook.accountkit.AccountKitCallback;
@@ -33,18 +26,14 @@ import com.facebook.accountkit.AccountKitLoginResult;
 import com.facebook.accountkit.ui.AccountKitActivity;
 import com.facebook.accountkit.ui.AccountKitConfiguration;
 import com.facebook.accountkit.ui.LoginType;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.rengwuxian.materialedittext.MaterialEditText;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -111,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
                             .addListenerForSingleValueEvent(new ValueEventListener() {
                                 @Override
                                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                    Common.currentUser = dataSnapshot.getValue(User.class);
+                                    Common.currentDriver = dataSnapshot.getValue(SiyayaDriver.class);
 
                                     Intent homeIntent = new Intent(MainActivity.this, DriverHome.class);
                                     startActivity(homeIntent);
@@ -164,30 +153,30 @@ public class MainActivity extends AppCompatActivity {
 
                     AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
                         @Override
-                        public void onSuccess(Account account) {
+                        public void onSuccess(final Account account) {
                             final String userPhone = account.getPhoneNumber().toString();
 
-                            users.orderByKey().equalTo(userPhone)
+                            users.orderByKey().equalTo(account.getId())
                                     .addListenerForSingleValueEvent(new ValueEventListener() {
                                         @Override
                                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                            if(!dataSnapshot.child(userPhone).exists()) {
-                                                User user = new User();
-                                                user.setPhone(userPhone);
-                                                user.setName(userPhone);
-                                                user.setAvatarUrl("");
-                                                //user.setRates("0.0");
+                                            if(!dataSnapshot.child(account.getId()).exists()) {
+                                                final SiyayaDriver siyayadriver = new SiyayaDriver();
+                                                siyayadriver.setPhone(account.getPhoneNumber().toString());
+                                                siyayadriver.setName(account.getPhoneNumber().toString());
+                                                siyayadriver.setAvatarUrl("");
+                                                siyayadriver.setRoute("Summerstrand");
 
-                                                users.child(userPhone)
-                                                        .setValue(user)
+                                                users.child(account.getId())
+                                                        .setValue(siyayadriver)
                                                         .addOnSuccessListener(new OnSuccessListener<Void>() {
                                                             @Override
                                                             public void onSuccess(Void aVoid) {
-                                                                users.child(userPhone)
+                                                                users.child(account.getId())
                                                                         .addListenerForSingleValueEvent(new ValueEventListener() {
                                                                             @Override
                                                                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                                                                Common.currentUser = dataSnapshot.getValue(User.class);
+                                                                                Common.currentDriver = dataSnapshot.getValue(SiyayaDriver.class);
 
                                                                                 Intent homeIntent = new Intent(MainActivity.this, DriverHome.class);
                                                                                 startActivity(homeIntent);
@@ -210,11 +199,11 @@ public class MainActivity extends AppCompatActivity {
                                                 });
                                             }
                                             else {
-                                                users.child(userPhone)
+                                                users.child(account.getId())
                                                         .addListenerForSingleValueEvent(new ValueEventListener() {
                                                             @Override
                                                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                                                Common.currentUser = dataSnapshot.getValue(User.class);
+                                                                Common.currentDriver = dataSnapshot.getValue(SiyayaDriver.class);
 
                                                                 Intent homeIntent = new Intent(MainActivity.this, DriverHome.class);
                                                                 startActivity(homeIntent);

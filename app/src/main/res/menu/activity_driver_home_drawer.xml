@@ -8,7 +8,7 @@
             android:id="@+id/nav_trip_history"
             android:title="Trip History" />
         <item
-            android:id="@+id/nav_help"
+            android:id="@+id/nav_route"
             android:title="Help" />
         <item
             android:id="@+id/nav_settings"

@@ -1,15 +1,16 @@
 package com.example.valtron.siyayaapp.Model;
 
-public class User {
-    private String name, phone, avatarUrl;
+public class SiyayaDriver {
+    private String name, phone, avatarUrl, route;
 
-    public User() {
+    public SiyayaDriver() {
     }
 
-    public User(String name, String phone, String avatarUrl) {
+    public SiyayaDriver(String name, String phone, String avatarUrl, String route) {
         this.name = name;
         this.phone = phone;
         this.avatarUrl = avatarUrl;
+        this.route = route;
     }
 
     public String getName() {
@@ -34,5 +35,13 @@ public class User {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+    }
+
+    public String getRoute() {
+        return route;
+    }
+
+    public void setRoute(String route) {
+        this.route = route;
     }
 }
