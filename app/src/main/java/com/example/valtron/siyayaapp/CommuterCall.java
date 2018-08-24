@@ -109,11 +109,11 @@ public class CommuterCall extends AppCompatActivity {
     private void cancelBooking(String customerId) {
         Token token = new Token(customerId);
 
-        /*Notification notification = new Notification("Cancelled","SiyayaDriver has cancelled your request");
+        /*Notification notification = new Notification("Cancelled","Siyaya_Driver has cancelled your request");
         Sender sender = new Sender(token.getToken(), notification);*/
         Map<String,String> content = new HashMap<>();
         content.put("title", "Cancel");
-        content.put("message", "SiyayaDriver has cancelled your request");
+        content.put("message", "Siyaya_Driver has cancelled your request");
         DataMessage dataMessage = new DataMessage(token.getToken(), content);
 
         mFCMService.sendMessage(dataMessage)

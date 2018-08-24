@@ -44,6 +44,7 @@ import uk.co.chrisjenx.calligraphy.CalligraphyConfig;
 import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
 public class MainActivity extends AppCompatActivity {
+
     private static final int REQUEST_CODE = 1000;
     Button btnContinue;
     RelativeLayout rootDriverLayout;
@@ -96,11 +97,11 @@ public class MainActivity extends AppCompatActivity {
             AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
                 @Override
                 public void onSuccess(Account account) {
-                    users.child(account.getPhoneNumber().toString())
+                    users.child(account.getId())
                             .addListenerForSingleValueEvent(new ValueEventListener() {
                                 @Override
                                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                    Common.currentDriver = dataSnapshot.getValue(SiyayaDriver.class);
+                                    Common.current_Driver = dataSnapshot.getValue(SiyayaDriver.class);
 
                                     Intent homeIntent = new Intent(MainActivity.this, DriverHome.class);
                                     startActivity(homeIntent);
@@ -176,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
                                                                         .addListenerForSingleValueEvent(new ValueEventListener() {
                                                                             @Override
                                                                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                                                                Common.currentDriver = dataSnapshot.getValue(SiyayaDriver.class);
+                                                                                Common.current_Driver = dataSnapshot.getValue(SiyayaDriver.class);
 
                                                                                 Intent homeIntent = new Intent(MainActivity.this, DriverHome.class);
                                                                                 startActivity(homeIntent);
@@ -203,7 +204,7 @@ public class MainActivity extends AppCompatActivity {
                                                         .addListenerForSingleValueEvent(new ValueEventListener() {
                                                             @Override
                                                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                                                Common.currentDriver = dataSnapshot.getValue(SiyayaDriver.class);
+                                                                Common.current_Driver = dataSnapshot.getValue(SiyayaDriver.class);
 
                                                                 Intent homeIntent = new Intent(MainActivity.this, DriverHome.class);
                                                                 startActivity(homeIntent);

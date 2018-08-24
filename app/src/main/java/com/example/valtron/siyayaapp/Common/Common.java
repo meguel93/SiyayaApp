@@ -12,6 +12,8 @@ public class Common {
 
     //public static String currentToken = "";
 
+    public static SiyayaDriver current_Driver = new SiyayaDriver();
+
     public static final String driver_tbl = "Drivers";
     public static final String user_driver_tbl = "DriversInformation";
     public static final String user_rider_tbl = "RidersInformation";
@@ -20,8 +22,6 @@ public class Common {
     public static final String user_field = "usr";
     public static final String pwd_field = "pwd";
     //public static final String user_field;
-
-    public static SiyayaDriver currentDriver;
 
     public static Location mLastLocation = null;
 

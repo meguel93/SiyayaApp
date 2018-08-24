@@ -124,7 +124,7 @@ public class DriverTracking extends FragmentActivity implements OnMapReadyCallba
         .strokeWidth(5.0f));
 
         geoFire = new GeoFire(FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
-        .child(Common.currentDriver.getRoute()));
+        .child(Common.current_Driver.getRoute()));
         GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(riderLat, riderLng), 0.05f);
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             @Override
@@ -158,12 +158,12 @@ public class DriverTracking extends FragmentActivity implements OnMapReadyCallba
     private void ArrivedNotification(String customerId) {
         Token token = new Token(customerId);
         /*Notification notification = new Notification("Arrived",String
-                .format("The driver %s has arrived at your location", Common.currentDriver.getName()));
+                .format("The driver %s has arrived at your location", Common.current_Driver.getName()));
         Sender sender = new Sender(token.getToken(), notification);*/
 
         Map<String,String> content = new HashMap<>();
         content.put("title", "Arrived");
-        content.put("message", String.format("The driver %s has arrived at your location", Common.currentDriver.getName()));
+        content.put("message", String.format("The driver %s has arrived at your location", Common.current_Driver.getName()));
         DataMessage dataMessage = new DataMessage(token.getToken(), content);
 
         mFCMService.sendMessage(dataMessage).enqueue(new Callback<FCMResponse>() {

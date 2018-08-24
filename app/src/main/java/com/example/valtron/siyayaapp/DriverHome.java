@@ -104,6 +104,8 @@ import de.hdodenhof.circleimageview.CircleImageView;
 import dmax.dialog.SpotsDialog;
 import retrofit2.Callback;
 
+import static com.example.valtron.siyayaapp.Common.Common.current_Driver;
+
 public class DriverHome extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
         OnMapReadyCallback {
@@ -152,6 +154,9 @@ public class DriverHome extends AppCompatActivity
 
     FirebaseStorage firebaseStorage;
     StorageReference storageReference;
+
+
+    TextView txtDriverName;
 
     Runnable drawPathRunnable = new Runnable() {
         @Override
@@ -228,13 +233,14 @@ public class DriverHome extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
 
         View navigationHeaderView = navigationView.getHeaderView(0);
-        TextView txtName = (TextView) navigationHeaderView.findViewById(R.id.txtDriverName);
+        txtDriverName = (TextView)navigationHeaderView.findViewById(R.id.txtDriverName);
+
+        txtDriverName.setText(current_Driver.getName());
         CircleImageView imageAvatar = (CircleImageView) navigationHeaderView.findViewById(R.id.image_avatar);
 
-        txtName.setText(Common.currentDriver.getName());
-        if (Common.currentDriver.getAvatarUrl() != null && !TextUtils.isEmpty(Common.currentDriver.getAvatarUrl()))
+        if (current_Driver.getAvatarUrl() != null && !TextUtils.isEmpty(current_Driver.getAvatarUrl()))
             Picasso.with(this)
-                    .load(Common.currentDriver.getAvatarUrl())
+                    .load(current_Driver.getAvatarUrl())
                     .into(imageAvatar);
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -247,6 +253,7 @@ public class DriverHome extends AppCompatActivity
             public void onSuccess(Account account) {
                 onlineRef = FirebaseDatabase.getInstance().getReference().child(".info/connected");
                 currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
+                        .child(Common.current_Driver.getRoute())
                         .child(account.getId());
                 onlineRef.addValueEventListener(new ValueEventListener() {
                     @Override
@@ -281,6 +288,10 @@ public class DriverHome extends AppCompatActivity
                     buildLocationCallBack();
                     buildLocationRequest();
                     fusedLocationProviderClient.requestLocationUpdates(mLocationRequest, locationCallback, Looper.myLooper());
+
+                    drivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(current_Driver.getRoute());
+                    geoFire = new GeoFire(drivers);
+
                     displayLocation();
                     Snackbar.make(mapFragment.getView(), "You are online", Snackbar.LENGTH_SHORT)
                             .show();
@@ -327,8 +338,7 @@ public class DriverHome extends AppCompatActivity
             }
         });
 
-        drivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(Common.currentDriver.getRoute());
-        geoFire = new GeoFire(drivers);
+
 
         setUpLocation();
 
@@ -515,8 +525,12 @@ public class DriverHome extends AppCompatActivity
         } else {
             buildLocationRequest();
             buildLocationCallBack();
-            if (location_switch.isChecked())
+            if (location_switch.isChecked()) {
+                drivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(current_Driver.getRoute());
+                geoFire = new GeoFire(drivers);
+
                 displayLocation();
+            }
         }
     }
 
@@ -680,15 +694,15 @@ public class DriverHome extends AppCompatActivity
         final RadioButton forest = layout_route.findViewById(R.id.forest_route);
         final RadioButton green = layout_route.findViewById(R.id.green_route);
 
-        if(Common.currentDriver.getRoute().equals("Town"))
+        if(current_Driver.getRoute().equals("Town"))
             town.setChecked(true);
-        if(Common.currentDriver.getRoute().equals("Central"))
+        if(current_Driver.getRoute().equals("Central"))
             central.setChecked(true);
-        if(Common.currentDriver.getRoute().equals("Summerstrand"))
+        if(current_Driver.getRoute().equals("Summerstrand"))
             summer.setChecked(true);
-        if(Common.currentDriver.getRoute().equals("Forest Hill"))
+        if(current_Driver.getRoute().equals("Forest Hill"))
             forest.setChecked(true);
-        if(Common.currentDriver.getRoute().equals("Greenacres"))
+        if(current_Driver.getRoute().equals("Greenacres"))
             green.setChecked(true);
         AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
             @Override
@@ -724,7 +738,7 @@ public class DriverHome extends AppCompatActivity
                         .addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                Common.currentDriver = dataSnapshot.getValue(SiyayaDriver.class);
+                                current_Driver = dataSnapshot.getValue(SiyayaDriver.class);
                             }
 
                             @Override
@@ -783,7 +797,7 @@ public class DriverHome extends AppCompatActivity
                                 .addListenerForSingleValueEvent(new ValueEventListener() {
                                     @Override
                                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                        Common.currentDriver = dataSnapshot.getValue(SiyayaDriver.class);
+                                        current_Driver = dataSnapshot.getValue(SiyayaDriver.class);
                                     }
 
                                     @Override
