@@ -105,6 +105,7 @@ import dmax.dialog.SpotsDialog;
 import retrofit2.Callback;
 
 import static com.example.valtron.siyayaapp.Common.Common.current_Driver;
+import static com.example.valtron.siyayaapp.Common.Common.mLastLocation;
 
 public class DriverHome extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
@@ -121,6 +122,7 @@ public class DriverHome extends AppCompatActivity
     private LocationRequest mLocationRequest;
     private GoogleApiClient mGoogleApiClient;
 
+    //private Location mLastLocation;
 
     private static int UPDATE_INTERVAL = 5000;
     private static int FASTEST_INTERVAL = 3000;
@@ -345,6 +347,20 @@ public class DriverHome extends AppCompatActivity
         mService = Common.getGoogleAPI();
 
         updateFirebaseToken();
+    }
+
+    @Override
+    protected void onStop() {
+        FirebaseDatabase.getInstance().goOffline();
+
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+
+        mCurrent.remove();
+        mMap.clear();
+        if (handler != null)
+            handler.removeCallbacks(drawPathRunnable);
+
+        super.onStop();
     }
 
     private void updateFirebaseToken() {
@@ -694,65 +710,23 @@ public class DriverHome extends AppCompatActivity
         final RadioButton forest = layout_route.findViewById(R.id.forest_route);
         final RadioButton green = layout_route.findViewById(R.id.green_route);
 
-        if(current_Driver.getRoute().equals("Town"))
-            town.setChecked(true);
-        if(current_Driver.getRoute().equals("Central"))
-            central.setChecked(true);
-        if(current_Driver.getRoute().equals("Summerstrand"))
-            summer.setChecked(true);
-        if(current_Driver.getRoute().equals("Forest Hill"))
-            forest.setChecked(true);
-        if(current_Driver.getRoute().equals("Greenacres"))
-            green.setChecked(true);
-        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
-            @Override
-            public void onSuccess(Account account) {
-
-                Map<String, Object> updateInfo = new HashMap<>();
-                if (town.isChecked())
-                    updateInfo.put("route", town.getText().toString());
-                if (central.isChecked())
-                    updateInfo.put("route", central.getText().toString());
-                if (summer.isChecked())
-                    updateInfo.put("route", summer.getText().toString());
-                if (forest.isChecked())
-                    updateInfo.put("route", forest.getText().toString());
-                if (green.isChecked())
-                    updateInfo.put("route", green.getText().toString());
-
-                DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
-                driverInformation.child(account.getId())
-                        .updateChildren(updateInfo)
-                        .addOnCompleteListener(new OnCompleteListener<Void>() {
-                            @Override
-                            public void onComplete(@NonNull Task<Void> task) {
-                                if (task.isSuccessful())
-                                    Toast.makeText(DriverHome.this, "Route Updated!", Toast.LENGTH_SHORT).show();
-                                else
-                                    Toast.makeText(DriverHome.this, "Route Updated error!", Toast.LENGTH_SHORT).show();
-
-                                //waitingDialog.dismiss();
-                            }
-                        });
-                driverInformation.child(account.getId())
-                        .addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                current_Driver = dataSnapshot.getValue(SiyayaDriver.class);
-                            }
-
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                            }
-                        });
-            }
-
-            @Override
-            public void onError(AccountKitError accountKitError) {
-
-            }
-        });
+        switch (current_Driver.getRoute()) {
+            case "Town":
+                town.setChecked(true);
+                break;
+            case "Central":
+                central.setChecked(true);
+                break;
+            case "Summerstrand":
+                summer.setChecked(true);
+                break;
+            case "Forest Hill":
+                forest.setChecked(true);
+                break;
+            case "Greenacres":
+                green.setChecked(true);
+                break;
+        }
 
         dialog.setView(layout_route);
 
@@ -765,18 +739,18 @@ public class DriverHome extends AppCompatActivity
 
                 AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
                     @Override
-                    public void onSuccess(Account account) {
+                    public void onSuccess(final Account account) {
 
                         Map<String, Object> updateInfo = new HashMap<>();
                         if (town.isChecked())
                             updateInfo.put("route", town.getText().toString());
-                        if (central.isChecked())
+                        else if (central.isChecked())
                             updateInfo.put("route", central.getText().toString());
-                        if (summer.isChecked())
+                        else if (summer.isChecked())
                             updateInfo.put("route", summer.getText().toString());
-                        if (forest.isChecked())
+                        else if (forest.isChecked())
                             updateInfo.put("route", forest.getText().toString());
-                        if (green.isChecked())
+                        else if (green.isChecked())
                             updateInfo.put("route", green.getText().toString());
 
                         DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
@@ -785,8 +759,12 @@ public class DriverHome extends AppCompatActivity
                                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                                     @Override
                                     public void onComplete(@NonNull Task<Void> task) {
-                                        if (task.isSuccessful())
+                                        if (task.isSuccessful()) {
+                                            currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
+                                                    .child(Common.current_Driver.getRoute())
+                                                    .child(account.getId());
                                             Toast.makeText(DriverHome.this, "Route Updated!", Toast.LENGTH_SHORT).show();
+                                        }
                                         else
                                             Toast.makeText(DriverHome.this, "Route Updated error!", Toast.LENGTH_SHORT).show();
 
@@ -812,6 +790,59 @@ public class DriverHome extends AppCompatActivity
 
                     }
                 });
+            }
+        });
+
+        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+            @Override
+            public void onSuccess(final Account account) {
+
+                Map<String, Object> updateInfo = new HashMap<>();
+                if (town.isChecked())
+                    updateInfo.put("route", town.getText().toString());
+                else if (central.isChecked())
+                    updateInfo.put("route", central.getText().toString());
+                else if (summer.isChecked())
+                    updateInfo.put("route", summer.getText().toString());
+                else if (forest.isChecked())
+                    updateInfo.put("route", forest.getText().toString());
+                else if (green.isChecked())
+                    updateInfo.put("route", green.getText().toString());
+
+                DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
+                driverInformation.child(account.getId())
+                        .updateChildren(updateInfo)
+                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                if (task.isSuccessful()) {
+                                    currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
+                                            .child(Common.current_Driver.getRoute())
+                                            .child(account.getId());
+                                    Toast.makeText(DriverHome.this, "Route Updated!", Toast.LENGTH_SHORT).show();
+                                } else
+                                    Toast.makeText(DriverHome.this, "Route Updated error!", Toast.LENGTH_SHORT).show();
+
+                                //waitingDialog.dismiss();
+                            }
+                        });
+                driverInformation.child(account.getId())
+                        .addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                current_Driver = dataSnapshot.getValue(SiyayaDriver.class);
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                            }
+                        });
+            }
+
+            @Override
+            public void onError(AccountKitError accountKitError) {
+
             }
         });
 
@@ -1014,7 +1045,7 @@ public class DriverHome extends AppCompatActivity
         mMap.setTrafficEnabled(false);
         mMap.setIndoorEnabled(false);
         mMap.setBuildingsEnabled(false);
-        mMap.getUiSettings().setZoomControlsEnabled(true);
+        mMap.getUiSettings().setZoomControlsEnabled(false);
         //mGoogleApiClient.connect();
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
