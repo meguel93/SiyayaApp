@@ -250,47 +250,22 @@ public class DriverHome extends AppCompatActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
-            @Override
-            public void onSuccess(Account account) {
-                onlineRef = FirebaseDatabase.getInstance().getReference().child(".info/connected");
-                currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
-                        .child(Common.current_Driver.getRoute())
-                        .child(account.getId());
-                onlineRef.addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                        currentUserRef.onDisconnect().removeValue();
-                    }
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                    }
-                });
-            }
-
-            @Override
-            public void onError(AccountKitError accountKitError) {
-
-            }
-        });
-
-        location_switch = /*(MaterialAnimatedSwitch)*/findViewById(R.id.location_switch);
+        location_switch = findViewById(R.id.location_switch);
         location_switch.setOnCheckedChangeListener(new MaterialAnimatedSwitch.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(boolean isOnline) {
                 if (isOnline) {
                     FirebaseDatabase.getInstance().goOnline();
-
-                    if (ActivityCompat.checkSelfPermission(DriverHome.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                            ActivityCompat.checkSelfPermission(DriverHome.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    if (ActivityCompat.checkSelfPermission(DriverHome.this,
+                            Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                            ActivityCompat.checkSelfPermission(DriverHome.this,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                         return;
                     }
                     buildLocationCallBack();
                     buildLocationRequest();
                     fusedLocationProviderClient.requestLocationUpdates(mLocationRequest, locationCallback, Looper.myLooper());
-
                     drivers = FirebaseDatabase.getInstance().getReference(Common.driver_tbl).child(current_Driver.getRoute());
                     geoFire = new GeoFire(drivers);
 
@@ -299,16 +274,13 @@ public class DriverHome extends AppCompatActivity
                             .show();
                 } else {
                     FirebaseDatabase.getInstance().goOffline();
-
                     fusedLocationProviderClient.removeLocationUpdates(locationCallback);
-
                     mCurrent.remove();
                     mMap.clear();
                     handler = new Handler();
                     if (handler != null)
                         handler.removeCallbacks(drawPathRunnable);
-                    Snackbar.make(mapFragment.getView(), "You are offline", Snackbar.LENGTH_SHORT)
-                            .show();
+                    Snackbar.make(mapFragment.getView(), "You are offline", Snackbar.LENGTH_SHORT).show();
                 }
             }
         });
@@ -350,7 +322,38 @@ public class DriverHome extends AppCompatActivity
     }
 
     @Override
-    protected void onStop() {
+    protected void onResume() {
+        super.onResume();
+
+        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+            @Override
+            public void onSuccess(Account account) {
+                onlineRef = FirebaseDatabase.getInstance().getReference().child(".info/connected");
+                currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
+                        .child(Common.current_Driver.getRoute())
+                        .child(account.getId());
+                onlineRef.addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        currentUserRef.onDisconnect().removeValue();
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                    }
+                });
+            }
+
+            @Override
+            public void onError(AccountKitError accountKitError) {
+
+            }
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
         FirebaseDatabase.getInstance().goOffline();
 
         fusedLocationProviderClient.removeLocationUpdates(locationCallback);
@@ -360,7 +363,7 @@ public class DriverHome extends AppCompatActivity
         if (handler != null)
             handler.removeCallbacks(drawPathRunnable);
 
-        super.onStop();
+        super.onDestroy();
     }
 
     private void updateFirebaseToken() {

@@ -16,7 +16,7 @@ public class MyFirebaseMessaging extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         if (remoteMessage.getData() != null) {
-            Map<String, String> data = new HashMap<>();
+            Map<String, String> data = remoteMessage.getData();
             String customer = data.get("customer");
             String lat = data.get("lat");
             String lng = data.get("lng");

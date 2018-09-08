@@ -55,7 +55,7 @@ public class CommuterCall extends AppCompatActivity {
 
     String customerId;
 
-    double lat, lng;
+    String lat, lng;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -98,8 +98,8 @@ public class CommuterCall extends AppCompatActivity {
         mediaPlayer.start();
 
         if(getIntent() != null){
-            lat = getIntent().getDoubleExtra("lat",-1.0);
-            lng = getIntent().getDoubleExtra("lng",-1.0);
+            lat = getIntent().getStringExtra("lat");
+            lng = getIntent().getStringExtra("lng");
             customerId = getIntent().getStringExtra("customer");
 
             getDirection(lat, lng);
@@ -133,7 +133,7 @@ public class CommuterCall extends AppCompatActivity {
                 });
     }
 
-    private void getDirection(double lat, double lng) {
+    private void getDirection(String lat, String lng) {
 
 
         String requestApi = null;
@@ -189,19 +189,22 @@ public class CommuterCall extends AppCompatActivity {
 
     @Override
     protected void onStop() {
-        mediaPlayer.release();
+        if (mediaPlayer.isPlaying())
+            mediaPlayer.release();
         super.onStop();
     }
 
     @Override
     protected void onPause() {
-        mediaPlayer.release();
+        if(mediaPlayer.isPlaying())
+            mediaPlayer.release();
         super.onPause();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        mediaPlayer.start();
+        if (mediaPlayer != null && !mediaPlayer.isPlaying())
+            mediaPlayer.start();
     }
 }

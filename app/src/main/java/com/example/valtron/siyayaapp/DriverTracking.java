@@ -67,7 +67,7 @@ public class DriverTracking extends FragmentActivity implements OnMapReadyCallba
 
     private GoogleMap mMap;
 
-    double riderLat, riderLng;
+    String riderLat, riderLng;
 
     String customerId;
 
@@ -101,8 +101,8 @@ public class DriverTracking extends FragmentActivity implements OnMapReadyCallba
         mapFragment.getMapAsync(this);
 
         if(getIntent() != null){
-            riderLat = getIntent().getDoubleExtra("lat", -1.0);
-            riderLng = getIntent().getDoubleExtra("lng", -1.0);
+            riderLat = getIntent().getStringExtra("lat");
+            riderLng = getIntent().getStringExtra("lng");
             customerId = getIntent().getStringExtra("customerId");
         }
 
@@ -117,7 +117,7 @@ public class DriverTracking extends FragmentActivity implements OnMapReadyCallba
         mMap = googleMap;
 
         riderMarker = mMap.addCircle(new CircleOptions()
-        .center(new LatLng(riderLat, riderLng))
+        .center(new LatLng(Double.parseDouble(riderLat), Double.parseDouble(riderLng)))
         .radius(50)
         .strokeColor(Color.BLUE)
         .fillColor(0x220000FF)
@@ -125,7 +125,7 @@ public class DriverTracking extends FragmentActivity implements OnMapReadyCallba
 
         geoFire = new GeoFire(FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
         .child(Common.current_Driver.getRoute()));
-        GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(riderLat, riderLng), 0.05f);
+        GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(Double.parseDouble(riderLat), Double.parseDouble(riderLng)), 0.05f);
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             @Override
             public void onKeyEntered(String key, GeoLocation location) {
