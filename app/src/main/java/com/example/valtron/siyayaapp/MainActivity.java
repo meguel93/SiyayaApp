@@ -18,6 +18,7 @@ import android.widget.Toast;
 
 import com.example.valtron.siyayaapp.Common.Common;
 import com.example.valtron.siyayaapp.Model.SiyayaDriver;
+import com.example.valtron.siyayaapp.Model.Token;
 import com.facebook.accountkit.Account;
 import com.facebook.accountkit.AccountKit;
 import com.facebook.accountkit.AccountKitCallback;
@@ -28,12 +29,13 @@ import com.facebook.accountkit.ui.AccountKitConfiguration;
 import com.facebook.accountkit.ui.LoginType;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -49,7 +51,6 @@ public class MainActivity extends AppCompatActivity {
     Button btnContinue;
     RelativeLayout rootDriverLayout;
 
-    FirebaseAuth auth;
     FirebaseDatabase db;
     DatabaseReference users;
 
@@ -73,7 +74,6 @@ public class MainActivity extends AppCompatActivity {
 
         Paper.init(this);
 
-        auth = FirebaseAuth.getInstance();
         db = FirebaseDatabase.getInstance();
         users = db.getReference(Common.user_driver_tbl);
 
@@ -102,6 +102,8 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                                     Common.current_Driver = dataSnapshot.getValue(SiyayaDriver.class);
+
+                                    updateTokenToServer();
 
                                     Intent homeIntent = new Intent(MainActivity.this, DriverHome.class);
                                     startActivity(homeIntent);
@@ -179,6 +181,8 @@ public class MainActivity extends AppCompatActivity {
                                                                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                                                                                 Common.current_Driver = dataSnapshot.getValue(SiyayaDriver.class);
 
+                                                                                updateTokenToServer();
+
                                                                                 Intent homeIntent = new Intent(MainActivity.this, DriverHome.class);
                                                                                 startActivity(homeIntent);
 
@@ -205,6 +209,8 @@ public class MainActivity extends AppCompatActivity {
                                                             @Override
                                                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                                                                 Common.current_Driver = dataSnapshot.getValue(SiyayaDriver.class);
+
+                                                                updateTokenToServer();
 
                                                                 Intent homeIntent = new Intent(MainActivity.this, DriverHome.class);
                                                                 startActivity(homeIntent);
@@ -253,6 +259,44 @@ public class MainActivity extends AppCompatActivity {
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
+    }
+
+    private void updateTokenToServer() {
+        FirebaseDatabase db = FirebaseDatabase.getInstance();
+        final DatabaseReference tokens = db.getReference(Common.token_tbl);
+
+        //final Token token = new Token(refreshedToken);
+
+        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+            @Override
+            public void onSuccess(final Account account) {
+                FirebaseInstanceId.getInstance()
+                        .getInstanceId()
+                        .addOnSuccessListener(new OnSuccessListener<InstanceIdResult>() {
+                            @Override
+                            public void onSuccess(InstanceIdResult instanceIdResult) {
+                                Token token = new Token(instanceIdResult.getToken());
+                                tokens.child(account.getId())
+                                        .setValue(token);
+                            }
+                        })
+                        .addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Log.e("ERROR_TOKEN", e.getMessage());
+                                Toast.makeText(MainActivity.this, "" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            }
+
+            @Override
+            public void onError(AccountKitError accountKitError) {
+                Log.d("ERROR_ACCOUNTKIT", accountKitError.getUserFacingMessage());
+            }
+        });
+        /*if(FirebaseAuth.getInstance().getCurrentUser() != null)
+            tokens.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+            .setValue(token);*/
     }
 
 }

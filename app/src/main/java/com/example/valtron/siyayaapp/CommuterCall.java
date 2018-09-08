@@ -4,6 +4,7 @@ import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.graphics.Color;
 import android.media.MediaPlayer;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -45,7 +46,7 @@ import retrofit2.Response;
 
 public class CommuterCall extends AppCompatActivity {
 
-    TextView txtTime, txtAddress, txtDistance;
+    TextView txtTime, txtAddress, txtDistance, txtCountDown;
     Button btnCancel, btnAccept;
 
     MediaPlayer mediaPlayer;
@@ -67,6 +68,7 @@ public class CommuterCall extends AppCompatActivity {
         txtAddress = (TextView)findViewById(R.id.txtAddress);
         txtDistance = (TextView)findViewById(R.id.txtDistance);
         txtTime = (TextView)findViewById(R.id.txtTime);
+        txtCountDown = findViewById(R.id.txt_countdown);
 
         btnAccept = (Button)findViewById(R.id.btnAccept);
         btnCancel = (Button)findViewById(R.id.btnDecline);
@@ -104,6 +106,25 @@ public class CommuterCall extends AppCompatActivity {
 
             getDirection(lat, lng);
         }
+
+        startTimer();
+    }
+
+    private void startTimer() {
+        CountDownTimer countDownTimer = new CountDownTimer(10000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                txtCountDown.setText(String.valueOf(1/1000));
+            }
+
+            @Override
+            public void onFinish() {
+                if(!TextUtils.isEmpty(customerId))
+                    cancelBooking(customerId);
+                else
+                    Toast.makeText(CommuterCall.this, "Customer Id must not be empty", Toast.LENGTH_SHORT).show();
+            }
+        }.start();
     }
 
     private void cancelBooking(String customerId) {
