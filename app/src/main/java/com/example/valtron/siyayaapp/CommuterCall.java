@@ -95,7 +95,7 @@ public class CommuterCall extends AppCompatActivity {
             }
         });
 
-        mediaPlayer = MediaPlayer.create(this, R.raw.ringtone);
+        mediaPlayer = MediaPlayer.create(CommuterCall.this, R.raw.ringtone);
         mediaPlayer.setLooping(true);
         mediaPlayer.start();
 
@@ -111,10 +111,10 @@ public class CommuterCall extends AppCompatActivity {
     }
 
     private void startTimer() {
-        CountDownTimer countDownTimer = new CountDownTimer(10000, 1000) {
+        CountDownTimer countDownTimer = new CountDownTimer(30000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                txtCountDown.setText(String.valueOf(1/1000));
+                txtCountDown.setText(String.valueOf(millisUntilFinished/1000));
             }
 
             @Override
@@ -208,24 +208,33 @@ public class CommuterCall extends AppCompatActivity {
         }
     }
 
+
+
     @Override
     protected void onStop() {
-        if (mediaPlayer.isPlaying())
-            mediaPlayer.release();
+        stopPlayer();
         super.onStop();
     }
 
     @Override
     protected void onPause() {
-        if(mediaPlayer.isPlaying())
-            mediaPlayer.release();
+        mediaPlayer.stop();
+        mediaPlayer.release();
         super.onPause();
     }
 
     @Override
     protected void onResume() {
+        mediaPlayer = MediaPlayer.create(this, R.raw.ringtone);
+        mediaPlayer.setLooping(true);
+        mediaPlayer.start();
         super.onResume();
-        if (mediaPlayer != null && !mediaPlayer.isPlaying())
-            mediaPlayer.start();
+    }
+
+    private void stopPlayer() {
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
     }
 }

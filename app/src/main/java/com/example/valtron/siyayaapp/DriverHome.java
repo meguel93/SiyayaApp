@@ -250,6 +250,31 @@ public class DriverHome extends AppCompatActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+            @Override
+            public void onSuccess(Account account) {
+                onlineRef = FirebaseDatabase.getInstance().getReference().child(".info/connected");
+                currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
+                        .child(account.getId())
+                        .child(Common.current_Driver.getRoute());
+                onlineRef.addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        currentUserRef.onDisconnect().removeValue();
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                    }
+                });
+            }
+
+            @Override
+            public void onError(AccountKitError accountKitError) {
+
+            }
+        });
 
         location_switch = findViewById(R.id.location_switch);
         location_switch.setOnCheckedChangeListener(new MaterialAnimatedSwitch.OnCheckedChangeListener() {
@@ -324,14 +349,13 @@ public class DriverHome extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
-
         AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
             @Override
             public void onSuccess(Account account) {
                 onlineRef = FirebaseDatabase.getInstance().getReference().child(".info/connected");
                 currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
-                        .child(Common.current_Driver.getRoute())
-                        .child(account.getId());
+                        .child(account.getId())
+                        .child(Common.current_Driver.getRoute());
                 onlineRef.addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -769,7 +793,7 @@ public class DriverHome extends AppCompatActivity
                                             Toast.makeText(DriverHome.this, "Route Updated!", Toast.LENGTH_SHORT).show();
                                         }
                                         else
-                                            Toast.makeText(DriverHome.this, "Route Updated error!", Toast.LENGTH_SHORT).show();
+                                            Toast.makeText(DriverHome.this, "Route Update error!", Toast.LENGTH_SHORT).show();
 
                                         waitingDialog.dismiss();
                                     }
@@ -1037,7 +1061,7 @@ public class DriverHome extends AppCompatActivity
 
         try {
             boolean isSuccess = googleMap.setMapStyle(
-                    MapStyleOptions.loadRawResourceStyle(this, R.raw.siyaya_map)
+                    MapStyleOptions.loadRawResourceStyle(this, R.raw.dull_map)
             );
         } catch (Exception ex) {
             ex.printStackTrace();
