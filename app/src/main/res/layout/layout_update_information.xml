@@ -50,6 +50,11 @@
             app:met_primaryColor="@color/colorPrimary"
             />
 
+        <Spinner
+            android:id="@+id/routes_spinner"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content" />
+
         <ImageView
             android:id="@+id/image_upload"
             android:layout_gravity="center_horizontal"

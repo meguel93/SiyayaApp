@@ -30,8 +30,11 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.animation.LinearInterpolator;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.RadioButton;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -109,7 +112,7 @@ import static com.example.valtron.siyayaapp.Common.Common.mLastLocation;
 
 public class DriverHome extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
-        OnMapReadyCallback {
+        OnMapReadyCallback, AdapterView.OnItemSelectedListener {
 
     private GoogleMap mMap;
 
@@ -137,6 +140,7 @@ public class DriverHome extends AppCompatActivity
     SupportMapFragment mapFragment;
 
     private List<LatLng> polyLineList;
+    String selectedItem;
     private Marker carMarker;
     private float v;
     private double lat, lng;
@@ -707,7 +711,7 @@ public class DriverHome extends AppCompatActivity
         if (id == R.id.nav_trip_history) {
             // Handle the camera action
         } else if (id == R.id.nav_route) {
-            showRouteDialog();
+            //showRouteDialog();
         } else if (id == R.id.nav_settings) {
 
         } else if (id == R.id.nav_sing_out) {
@@ -723,7 +727,267 @@ public class DriverHome extends AppCompatActivity
         return true;
     }
 
-    private void showRouteDialog() {
+
+
+    private void showUpdateInfoDialog() {
+        final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+        dialog.setTitle("Edit Account");
+        //dialog.setMessage("Please use email to sign in");
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View layout_editInfo = inflater.inflate(R.layout.layout_update_information, null);
+
+        final MaterialEditText edtName = layout_editInfo.findViewById(R.id.edtName);
+        final MaterialEditText edtPhone = layout_editInfo.findViewById(R.id.edtPhone);
+        final Spinner spinner = layout_editInfo.findViewById(R.id.routes_spinner);
+        // Create an ArrayAdapter using the string array and a default spinner layout
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.routes_array, android.R.layout.simple_spinner_item);
+        // Specify the layout to use when the list of choices appears
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        // Apply the adapter to the spinner
+        spinner.setAdapter(adapter);
+        if (current_Driver.getRoute().equals("None")){
+            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    selectedItem = parent.getItemAtPosition(position).toString();
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+
+                }
+            });
+        } else
+            spinner.setEnabled(false);
+
+        final ImageView profile_picture = layout_editInfo.findViewById(R.id.image_upload);
+        profile_picture.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                chooseImage();
+            }
+        });
+
+        dialog.setView(layout_editInfo);
+
+        dialog.setPositiveButton("UPDATE", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                final android.app.AlertDialog waitingDialog = new SpotsDialog(DriverHome.this);
+                waitingDialog.show();
+
+                AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+                    @Override
+                    public void onSuccess(final Account account) {
+                        String name = edtName.getText().toString();
+                        String phone = edtPhone.getText().toString();
+
+                        Map<String, Object> updateInfo = new HashMap<>();
+                        if (!TextUtils.isEmpty(name))
+                            updateInfo.put("name", name);
+                        if (!TextUtils.isEmpty(phone))
+                            updateInfo.put("phone", phone);
+                        if (!TextUtils.isEmpty(selectedItem))
+                            updateInfo.put("route", selectedItem);
+
+                        DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
+                        driverInformation.child(account.getId())
+                                .updateChildren(updateInfo)
+                                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<Void> task) {
+                                        if (task.isSuccessful()) {
+                                            currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
+                                                    .child(Common.current_Driver.getRoute())
+                                                    .child(account.getId());
+                                            spinner.setEnabled(false);
+                                            Toast.makeText(DriverHome.this, "Account Updated!", Toast.LENGTH_SHORT).show();
+                                        }
+                                        else
+                                            Toast.makeText(DriverHome.this, "Account Updated error!", Toast.LENGTH_SHORT).show();
+
+                                        Intent i = getBaseContext().getPackageManager()
+                                                .getLaunchIntentForPackage( getBaseContext().getPackageName() );
+                                        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                        startActivity(i);
+                                        waitingDialog.dismiss();
+                                    }
+                                });
+                    }
+
+                    @Override
+                    public void onError(AccountKitError accountKitError) {
+
+                    }
+                });
+            }
+        });
+
+        dialog.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        dialog.show();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == Common.PICK_IMAGE_REQUEST && resultCode == RESULT_OK
+                && data != null && data.getData() != null) {
+            Uri saveUri = data.getData();
+            if (saveUri != null) {
+                final ProgressDialog mDialog = new ProgressDialog(this);
+                mDialog.setMessage("Uploading...");
+                mDialog.show();
+
+                String imageName = UUID.randomUUID().toString();
+                final StorageReference imageFolder = storageReference.child("images/" + imageName);
+                imageFolder.putFile(saveUri)
+                        .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                            @Override
+                            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                                mDialog.dismiss();
+                                Toast.makeText(DriverHome.this, "Uploaded!", Toast.LENGTH_SHORT).show();
+                                imageFolder.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                    @Override
+                                    public void onSuccess(final Uri uri) {
+                                        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+                                            @Override
+                                            public void onSuccess(Account account) {
+                                                Map<String, Object> avatarUpdate = new HashMap<>();
+                                                avatarUpdate.put("avatarUrl", uri.toString());
+
+                                                DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
+                                                driverInformation.child(account.getId())
+                                                        .updateChildren(avatarUpdate)
+                                                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                            @Override
+                                                            public void onComplete(@NonNull Task<Void> task) {
+                                                                if (task.isSuccessful())
+                                                                    Toast.makeText(DriverHome.this, "Uploaded!", Toast.LENGTH_SHORT).show();
+                                                                else
+                                                                    Toast.makeText(DriverHome.this, "Uploaded error!", Toast.LENGTH_SHORT).show();
+                                                            }
+                                                        });
+                                            }
+
+                                            @Override
+                                            public void onError(AccountKitError accountKitError) {
+
+                                            }
+                                        });
+
+                                    }
+                                });
+                            }
+                        })
+                        .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                            @Override
+                            public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                                double progress = (100.0 * taskSnapshot.getBytesTransferred() / taskSnapshot.getTotalByteCount());
+                                mDialog.setMessage("Uploaded " + progress + "%");
+                            }
+                        });
+            }
+        }
+    }
+
+    private void chooseImage() {
+        Intent intent = new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, "Select Picture: "), Common.PICK_IMAGE_REQUEST);
+
+
+    }
+
+
+    private void signout() {
+        AlertDialog.Builder builder;
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert);
+        else
+            builder = new AlertDialog.Builder(this);
+
+        builder = new AlertDialog.Builder(this)
+                .setMessage("Are you sure you want to logout?")
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        AccountKit.logOut();
+                        Intent intent = new Intent(DriverHome.this, MainActivity.class);
+                        startActivity(intent);
+                        finish();
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+        builder.show();
+    }
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+
+        try {
+            boolean isSuccess = googleMap.setMapStyle(
+                    MapStyleOptions.loadRawResourceStyle(this, R.raw.dull_map)
+            );
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        mMap = googleMap;
+        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        mMap.setTrafficEnabled(false);
+        mMap.setIndoorEnabled(false);
+        mMap.setBuildingsEnabled(false);
+        mMap.getUiSettings().setZoomControlsEnabled(false);
+        //mGoogleApiClient.connect();
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        buildLocationRequest();
+        buildLocationCallBack();
+        fusedLocationProviderClient.requestLocationUpdates(mLocationRequest, locationCallback, Looper.myLooper());
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        String selectedItem = String.valueOf(parent.getItemIdAtPosition(position));
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*private void showRouteDialog() {
         final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
         dialog.setTitle("Choose Your Route");
         //dialog.setMessage("Please use email to sign in");
@@ -881,223 +1145,7 @@ public class DriverHome extends AppCompatActivity
         });
 
         dialog.show();
-    }
-
-    private void showUpdateInfoDialog() {
-        final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
-        dialog.setTitle("Edit Account");
-        //dialog.setMessage("Please use email to sign in");
-
-        LayoutInflater inflater = LayoutInflater.from(this);
-        View layout_editInfo = inflater.inflate(R.layout.layout_update_information, null);
-
-        final MaterialEditText edtName = layout_editInfo.findViewById(R.id.edtName);
-        final MaterialEditText edtPhone = layout_editInfo.findViewById(R.id.edtPhone);
-        final ImageView profile_picture = layout_editInfo.findViewById(R.id.image_upload);
-        profile_picture.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                chooseImage();
-            }
-        });
-
-        dialog.setView(layout_editInfo);
-
-        dialog.setPositiveButton("UPDATE", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-                final android.app.AlertDialog waitingDialog = new SpotsDialog(DriverHome.this);
-                waitingDialog.show();
-
-                AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
-                    @Override
-                    public void onSuccess(Account account) {
-                        String name = edtName.getText().toString();
-                        String phone = edtPhone.getText().toString();
-
-                        Map<String, Object> updateInfo = new HashMap<>();
-                        if (!TextUtils.isEmpty(name))
-                            updateInfo.put("name", name);
-                        if (!TextUtils.isEmpty(phone))
-                            updateInfo.put("phone", phone);
-
-                        DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
-                        driverInformation.child(account.getId())
-                                .updateChildren(updateInfo)
-                                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<Void> task) {
-                                        if (task.isSuccessful())
-                                            Toast.makeText(DriverHome.this, "Account Updated!", Toast.LENGTH_SHORT).show();
-                                        else
-                                            Toast.makeText(DriverHome.this, "Account Updated error!", Toast.LENGTH_SHORT).show();
-
-                                        waitingDialog.dismiss();
-                                    }
-                                });
-                    }
-
-                    @Override
-                    public void onError(AccountKitError accountKitError) {
-
-                    }
-                });
-            }
-        });
-
-        dialog.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-        });
-
-        dialog.show();
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == Common.PICK_IMAGE_REQUEST && resultCode == RESULT_OK
-                && data != null && data.getData() != null) {
-            Uri saveUri = data.getData();
-            if (saveUri != null) {
-                final ProgressDialog mDialog = new ProgressDialog(this);
-                mDialog.setMessage("Uploading...");
-                mDialog.show();
-
-                String imageName = UUID.randomUUID().toString();
-                final StorageReference imageFolder = storageReference.child("images/" + imageName);
-                imageFolder.putFile(saveUri)
-                        .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                            @Override
-                            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                                mDialog.dismiss();
-                                Toast.makeText(DriverHome.this, "Uploaded!", Toast.LENGTH_SHORT).show();
-                                imageFolder.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                                    @Override
-                                    public void onSuccess(final Uri uri) {
-                                        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
-                                            @Override
-                                            public void onSuccess(Account account) {
-                                                Map<String, Object> avatarUpdate = new HashMap<>();
-                                                avatarUpdate.put("avatarUrl", uri.toString());
-
-                                                DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
-                                                driverInformation.child(account.getId())
-                                                        .updateChildren(avatarUpdate)
-                                                        .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                            @Override
-                                                            public void onComplete(@NonNull Task<Void> task) {
-                                                                if (task.isSuccessful())
-                                                                    Toast.makeText(DriverHome.this, "Uploaded!", Toast.LENGTH_SHORT).show();
-                                                                else
-                                                                    Toast.makeText(DriverHome.this, "Uploaded error!", Toast.LENGTH_SHORT).show();
-                                                            }
-                                                        });
-                                            }
-
-                                            @Override
-                                            public void onError(AccountKitError accountKitError) {
-
-                                            }
-                                        });
-
-                                    }
-                                });
-                            }
-                        })
-                        .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
-                            @Override
-                            public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
-                                double progress = (100.0 * taskSnapshot.getBytesTransferred() / taskSnapshot.getTotalByteCount());
-                                mDialog.setMessage("Uploaded " + progress + "%");
-                            }
-                        });
-            }
-        }
-    }
-
-    private void chooseImage() {
-        Intent intent = new Intent();
-        intent.setType("image/*");
-        intent.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(Intent.createChooser(intent, "Select Picture: "), Common.PICK_IMAGE_REQUEST);
-
-
-    }
-
-
-    private void signout() {
-        AlertDialog.Builder builder;
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-            builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert);
-        else
-            builder = new AlertDialog.Builder(this);
-
-        builder = new AlertDialog.Builder(this)
-                .setMessage("Are you sure you want to logout?")
-                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        AccountKit.logOut();
-                        Intent intent = new Intent(DriverHome.this, MainActivity.class);
-                        startActivity(intent);
-                        finish();
-                    }
-                })
-                .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                    }
-                });
-        builder.show();
-    }
-
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-
-        try {
-            boolean isSuccess = googleMap.setMapStyle(
-                    MapStyleOptions.loadRawResourceStyle(this, R.raw.dull_map)
-            );
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-
-        mMap = googleMap;
-        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-        mMap.setTrafficEnabled(false);
-        mMap.setIndoorEnabled(false);
-        mMap.setBuildingsEnabled(false);
-        mMap.getUiSettings().setZoomControlsEnabled(false);
-        //mGoogleApiClient.connect();
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        buildLocationRequest();
-        buildLocationCallBack();
-        fusedLocationProviderClient.requestLocationUpdates(mLocationRequest, locationCallback, Looper.myLooper());
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    }*/
 
 
 

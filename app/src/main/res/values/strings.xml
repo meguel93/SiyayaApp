@@ -14,4 +14,15 @@
     <string name="title_activity_driver_home">DriverHome</string>
     <string name="FACEBOOK_APP_ID">616353535425943</string>
     <string name="ACCOUNT_KIT_CLIENT_TOKEN">fffd8428d33b72575a340918e7c64266</string>
+    <string-array name="routes_array">
+        <item>Select Route</item>
+        <item>Town</item>
+        <item>Summerstrand</item>
+        <item>Forrest Hill</item>
+        <item>Greenacres</item>
+        <item>Central</item>
+        <!--
+        <item>Uranus</item>
+        <item>Neptune</item>-->
+    </string-array>
 </resources>
