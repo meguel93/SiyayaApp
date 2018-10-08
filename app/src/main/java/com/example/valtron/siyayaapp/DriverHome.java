@@ -309,6 +309,7 @@ public class DriverHome extends AppCompatActivity
                     handler = new Handler();
                     if (handler != null)
                         handler.removeCallbacks(drawPathRunnable);
+                    currentUserRef.onDisconnect().removeValue();
                     Snackbar.make(mapFragment.getView(), "You are offline", Snackbar.LENGTH_SHORT).show();
                 }
             }
@@ -352,7 +353,6 @@ public class DriverHome extends AppCompatActivity
 
     @Override
     protected void onResume() {
-        super.onResume();
         AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
             @Override
             public void onSuccess(Account account) {
@@ -378,6 +378,7 @@ public class DriverHome extends AppCompatActivity
 
             }
         });
+        super.onResume();
     }
 
     @Override
