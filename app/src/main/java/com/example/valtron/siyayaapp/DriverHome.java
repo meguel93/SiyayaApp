@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
@@ -254,6 +255,13 @@ public class DriverHome extends AppCompatActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        //Check for reg number
+        if (current_Driver.getReg().equals("None") || current_Driver.getRoute().equals("None")) {
+            showUpdateInfoDialog();
+            Snackbar.make(mapFragment.getView(), "Edit Profile first", Snackbar.LENGTH_INDEFINITE)
+                    .show();
+        }
+
         AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
             @Override
             public void onSuccess(Account account) {
@@ -312,8 +320,11 @@ public class DriverHome extends AppCompatActivity
                     currentUserRef.onDisconnect().removeValue();
                     Snackbar.make(mapFragment.getView(), "You are offline", Snackbar.LENGTH_SHORT).show();
                 }
+
             }
         });
+
+
 
         polyLineList = new ArrayList<>();
         //btnGo = (Button) findViewById(R.id.btnGo);
@@ -355,7 +366,7 @@ public class DriverHome extends AppCompatActivity
     protected void onResume() {
         AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
             @Override
-            public void onSuccess(Account account) {
+            public void onSuccess(final Account account) {
                 onlineRef = FirebaseDatabase.getInstance().getReference().child(".info/connected");
                 currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
                         .child(account.getId())
@@ -363,7 +374,14 @@ public class DriverHome extends AppCompatActivity
                 onlineRef.addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                        currentUserRef.onDisconnect().removeValue();
+                        currentUserRef= FirebaseDatabase.getInstance().getReference(Common.driver_tbl);
+                        currentUserRef.child(Common.current_Driver.getRoute())
+                                .child(account.getId()).onDisconnect().removeValue(new DatabaseReference.CompletionListener() {
+                            @Override
+                            public void onComplete(@Nullable DatabaseError databaseError, @NonNull DatabaseReference databaseReference) {
+                                //Toast.makeText(DriverHome.this, "Value removed", Toast.LENGTH_SHORT).show();
+                            }
+                        });
                     }
 
                     @Override
@@ -728,8 +746,6 @@ public class DriverHome extends AppCompatActivity
         return true;
     }
 
-
-
     private void showUpdateInfoDialog() {
         final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
         dialog.setTitle("Edit Account");
@@ -738,6 +754,7 @@ public class DriverHome extends AppCompatActivity
         LayoutInflater inflater = LayoutInflater.from(this);
         View layout_editInfo = inflater.inflate(R.layout.layout_update_information, null);
 
+        final MaterialEditText edtv_reg = layout_editInfo.findViewById(R.id.edtId);
         final MaterialEditText edtName = layout_editInfo.findViewById(R.id.edtName);
         final MaterialEditText edtPhone = layout_editInfo.findViewById(R.id.edtPhone);
         final Spinner spinner = layout_editInfo.findViewById(R.id.routes_spinner);
@@ -762,6 +779,9 @@ public class DriverHome extends AppCompatActivity
             });
         } else
             spinner.setEnabled(false);
+        //Check for reg number
+        if (!current_Driver.getReg().equals("None"))
+            edtv_reg.setEnabled(false);
 
         final ImageView profile_picture = layout_editInfo.findViewById(R.id.image_upload);
         profile_picture.setOnClickListener(new View.OnClickListener() {
@@ -785,6 +805,7 @@ public class DriverHome extends AppCompatActivity
                     public void onSuccess(final Account account) {
                         String name = edtName.getText().toString();
                         String phone = edtPhone.getText().toString();
+                        String v_reg = edtv_reg.getText().toString();
 
                         Map<String, Object> updateInfo = new HashMap<>();
                         if (!TextUtils.isEmpty(name))
@@ -793,7 +814,12 @@ public class DriverHome extends AppCompatActivity
                             updateInfo.put("phone", phone);
                         if (!TextUtils.isEmpty(selectedItem))
                             updateInfo.put("route", selectedItem);
-
+                        if (!TextUtils.isEmpty(v_reg)) {
+                            if(!account.getId().equals(v_reg))
+                                updateInfo.put("Reg", v_reg);
+                            else
+                                Toast.makeText(DriverHome.this, "Enter valid vehicle Reg", Toast.LENGTH_SHORT).show();
+                        }
                         DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
                         driverInformation.child(account.getId())
                                 .updateChildren(updateInfo)
@@ -802,8 +828,8 @@ public class DriverHome extends AppCompatActivity
                                     public void onComplete(@NonNull Task<Void> task) {
                                         if (task.isSuccessful()) {
                                             currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
-                                                    .child(Common.current_Driver.getRoute())
-                                                    .child(account.getId());
+                                                    .child(account.getId())
+                                                    .child(Common.current_Driver.getRoute());
                                             spinner.setEnabled(false);
                                             Toast.makeText(DriverHome.this, "Account Updated!", Toast.LENGTH_SHORT).show();
                                         }

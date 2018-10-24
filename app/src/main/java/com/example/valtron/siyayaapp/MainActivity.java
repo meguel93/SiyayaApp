@@ -169,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
                                                 siyayadriver.setName(account.getPhoneNumber().toString());
                                                 siyayadriver.setAvatarUrl("");
                                                 siyayadriver.setRoute("None");
+                                                siyayadriver.setReg("None");
 
                                                 users.child(account.getId())
                                                         .setValue(siyayadriver)

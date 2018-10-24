@@ -111,7 +111,7 @@ public class CommuterCall extends AppCompatActivity {
     }
 
     private void startTimer() {
-        CountDownTimer countDownTimer = new CountDownTimer(30000, 1000) {
+        CountDownTimer countDownTimer = new CountDownTimer(10000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 txtCountDown.setText(String.valueOf(millisUntilFinished/1000));
