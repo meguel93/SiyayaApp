@@ -1,17 +1,18 @@
 package com.example.valtron.siyayaapp.Model;
 
 public class SiyayaDriver {
-    private String name, phone, avatarUrl, route, Reg;
+    private String name, phone, avatarUrl, route, reg, Status;
 
     public SiyayaDriver() {
     }
 
-    public SiyayaDriver(String name, String phone, String avatarUrl, String route, String Reg) {
+    public SiyayaDriver(String name, String phone, String avatarUrl, String route, String reg, String status) {
         this.name = name;
         this.phone = phone;
         this.avatarUrl = avatarUrl;
         this.route = route;
-        this.Reg = Reg;
+        this.reg = reg;
+        Status = status;
     }
 
     public String getName() {
@@ -47,10 +48,18 @@ public class SiyayaDriver {
     }
 
     public String getReg() {
-        return Reg;
+        return reg;
     }
 
     public void setReg(String reg) {
-        Reg = reg;
+        this.reg = reg;
+    }
+
+    public String getStatus() {
+        return Status;
+    }
+
+    public void setStatus(String status) {
+        Status = status;
     }
 }

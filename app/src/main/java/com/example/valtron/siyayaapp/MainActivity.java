@@ -170,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
                                                 siyayadriver.setAvatarUrl("");
                                                 siyayadriver.setRoute("None");
                                                 siyayadriver.setReg("None");
+                                                siyayadriver.setStatus("Offline");
 
                                                 users.child(account.getId())
                                                         .setValue(siyayadriver)

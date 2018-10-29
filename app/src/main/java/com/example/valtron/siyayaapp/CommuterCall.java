@@ -189,6 +189,7 @@ public class CommuterCall extends AppCompatActivity {
 
                                 JSONObject time = legsObject.getJSONObject("duration");
                                 txtTime.setText(time.getString("text"));
+                                /*txtTime.setText(time.getString("text"));*/
 
                                 String address = legsObject.getString("end_address");
                                 txtAddress.setText(address);

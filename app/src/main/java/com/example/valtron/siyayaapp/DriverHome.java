@@ -42,6 +42,7 @@ import android.widget.Toast;
 import com.example.valtron.siyayaapp.Common.Common;
 import com.example.valtron.siyayaapp.Model.SiyayaDriver;
 import com.example.valtron.siyayaapp.Model.Token;
+import com.example.valtron.siyayaapp.Model.User;
 import com.example.valtron.siyayaapp.Retrofit.IGoogleAPI;
 import com.facebook.accountkit.Account;
 import com.facebook.accountkit.AccountKit;
@@ -108,6 +109,7 @@ import de.hdodenhof.circleimageview.CircleImageView;
 import dmax.dialog.SpotsDialog;
 import retrofit2.Callback;
 
+import static com.example.valtron.siyayaapp.Common.Common.PICK_IMAGE_REQUEST;
 import static com.example.valtron.siyayaapp.Common.Common.current_Driver;
 import static com.example.valtron.siyayaapp.Common.Common.mLastLocation;
 
@@ -157,11 +159,12 @@ public class DriverHome extends AppCompatActivity
 
     private IGoogleAPI mService;
 
-    DatabaseReference onlineRef, currentUserRef;
+    DatabaseReference onlineRef, currentUserRef, counterRef, currentUserRef2;
 
     FirebaseStorage firebaseStorage;
     StorageReference storageReference;
 
+    boolean status = false;
 
     TextView txtDriverName;
 
@@ -226,7 +229,7 @@ public class DriverHome extends AppCompatActivity
         setSupportActionBar(toolbar);
 
         firebaseStorage = FirebaseStorage.getInstance();
-        storageReference = firebaseStorage.getReference();
+        storageReference = firebaseStorage.getReference().child("images");
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -262,37 +265,16 @@ public class DriverHome extends AppCompatActivity
                     .show();
         }
 
-        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
-            @Override
-            public void onSuccess(Account account) {
-                onlineRef = FirebaseDatabase.getInstance().getReference().child(".info/connected");
-                currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
-                        .child(account.getId())
-                        .child(Common.current_Driver.getRoute());
-                onlineRef.addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                        currentUserRef.onDisconnect().removeValue();
-                    }
+        final Map<String, Object> updateInfo = new HashMap<>();
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                    }
-                });
-            }
-
-            @Override
-            public void onError(AccountKitError accountKitError) {
-
-            }
-        });
-
+        /*currentUserRef2 = FirebaseDatabase.getInstance().getReference(Common.status_tbl)
+                .child(account.getId());*/
         location_switch = findViewById(R.id.location_switch);
         location_switch.setOnCheckedChangeListener(new MaterialAnimatedSwitch.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(boolean isOnline) {
                 if (isOnline) {
+                    status = true;
                     FirebaseDatabase.getInstance().goOnline();
                     if (ActivityCompat.checkSelfPermission(DriverHome.this,
                             Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
@@ -300,6 +282,22 @@ public class DriverHome extends AppCompatActivity
                                     Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                         return;
                     }
+                    AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+                        @Override
+                        public void onSuccess(Account account) {
+                            currentUserRef2.child(account.getId()).setValue(new User(current_Driver.getReg(),
+                                    "Online",
+                                    String.valueOf(Common.mLastLocation.getLatitude()),
+                                    String.valueOf(Common.mLastLocation.getLongitude()),
+                                    current_Driver.getAvatarUrl(),
+                                    current_Driver.getRoute()));
+                        }
+
+                        @Override
+                        public void onError(AccountKitError accountKitError) {
+
+                        }
+                    });
                     buildLocationCallBack();
                     buildLocationRequest();
                     fusedLocationProviderClient.requestLocationUpdates(mLocationRequest, locationCallback, Looper.myLooper());
@@ -307,13 +305,16 @@ public class DriverHome extends AppCompatActivity
                     geoFire = new GeoFire(drivers);
 
                     displayLocation();
+
                     Snackbar.make(mapFragment.getView(), "You are online", Snackbar.LENGTH_SHORT)
                             .show();
-                } else {
+                } else if (!isOnline){
+                    status = false;
                     FirebaseDatabase.getInstance().goOffline();
                     fusedLocationProviderClient.removeLocationUpdates(locationCallback);
                     mCurrent.remove();
                     mMap.clear();
+
                     handler = new Handler();
                     if (handler != null)
                         handler.removeCallbacks(drawPathRunnable);
@@ -368,20 +369,37 @@ public class DriverHome extends AppCompatActivity
             @Override
             public void onSuccess(final Account account) {
                 onlineRef = FirebaseDatabase.getInstance().getReference().child(".info/connected");
+
+                counterRef = FirebaseDatabase.getInstance().getReference(Common.status_tbl)
+                                .child(account.getId());
+
                 currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
                         .child(account.getId())
-                        .child(Common.current_Driver.getRoute());
+                        .child(current_Driver.getRoute());
+
+                currentUserRef2 = FirebaseDatabase.getInstance().getReference().child(Common.status_tbl);
+
                 onlineRef.addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         currentUserRef= FirebaseDatabase.getInstance().getReference(Common.driver_tbl);
-                        currentUserRef.child(Common.current_Driver.getRoute())
+                        currentUserRef.child(current_Driver.getRoute())
                                 .child(account.getId()).onDisconnect().removeValue(new DatabaseReference.CompletionListener() {
                             @Override
                             public void onComplete(@Nullable DatabaseError databaseError, @NonNull DatabaseReference databaseReference) {
                                 //Toast.makeText(DriverHome.this, "Value removed", Toast.LENGTH_SHORT).show();
                             }
                         });
+                        if (Common.mLastLocation != null) {
+                            currentUserRef2.child(account.getId()).child("status").onDisconnect().setValue("Offline");
+
+                            /*if (status)
+                                currentUserRef2.child(account.getId()).setValue(new User(current_Driver.getReg(),
+                                        "Online",
+                                        String.valueOf(Common.mLastLocation.getLatitude()),
+                                        String.valueOf(Common.mLastLocation.getLongitude())));*/
+                        }
+
                     }
 
                     @Override
@@ -389,6 +407,34 @@ public class DriverHome extends AppCompatActivity
 
                     }
                 });
+
+                currentUserRef2.addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        currentUserRef2.child(account.getId()).child("status").onDisconnect().setValue("Offline");
+
+                        /*if (status)
+                            currentUserRef2.child(account.getId()).child("status").setValue("Online");*/
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                    }
+                });
+                /*counterRef.addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        currentUserRef2.child("status").onDisconnect().setValue("Offline");
+
+                        counterRef.child("status").onDisconnect().setValue("Online");
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                    }
+                });*/
             }
 
             @Override
@@ -757,18 +803,31 @@ public class DriverHome extends AppCompatActivity
         final MaterialEditText edtv_reg = layout_editInfo.findViewById(R.id.edtId);
         final MaterialEditText edtName = layout_editInfo.findViewById(R.id.edtName);
         final MaterialEditText edtPhone = layout_editInfo.findViewById(R.id.edtPhone);
+        final ImageView profile_picuter = layout_editInfo.findViewById(R.id.image_upload);
         final Spinner spinner = layout_editInfo.findViewById(R.id.routes_spinner);
+
+        profile_picuter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                chooseImage();
+            }
+        });
+
         // Create an ArrayAdapter using the string array and a default spinner layout
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
                 R.array.routes_array, android.R.layout.simple_spinner_item);
+
         // Specify the layout to use when the list of choices appears
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
         // Apply the adapter to the spinner
         spinner.setAdapter(adapter);
+
         if (current_Driver.getRoute().equals("None")){
             spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
-                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                public void onItemSelected(AdapterView<?> parent, View view,
+                                           int position, long id) {
                     selectedItem = parent.getItemAtPosition(position).toString();
                 }
 
@@ -816,7 +875,7 @@ public class DriverHome extends AppCompatActivity
                             updateInfo.put("route", selectedItem);
                         if (!TextUtils.isEmpty(v_reg)) {
                             if(!account.getId().equals(v_reg))
-                                updateInfo.put("Reg", v_reg);
+                                updateInfo.put("reg", v_reg);
                             else
                                 Toast.makeText(DriverHome.this, "Enter valid vehicle Reg", Toast.LENGTH_SHORT).show();
                         }
@@ -829,7 +888,7 @@ public class DriverHome extends AppCompatActivity
                                         if (task.isSuccessful()) {
                                             currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
                                                     .child(account.getId())
-                                                    .child(Common.current_Driver.getRoute());
+                                                    .child(current_Driver.getRoute());
                                             spinner.setEnabled(false);
                                             Toast.makeText(DriverHome.this, "Account Updated!", Toast.LENGTH_SHORT).show();
                                         }
@@ -874,54 +933,58 @@ public class DriverHome extends AppCompatActivity
                 mDialog.setMessage("Uploading...");
                 mDialog.show();
 
-                String imageName = UUID.randomUUID().toString();
-                final StorageReference imageFolder = storageReference.child("images/" + imageName);
+                String imageName = current_Driver.getReg();
+                final StorageReference imageFolder = storageReference.child(imageName);
                 imageFolder.putFile(saveUri)
-                        .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        .addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                             @Override
-                            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                                mDialog.dismiss();
-                                Toast.makeText(DriverHome.this, "Uploaded!", Toast.LENGTH_SHORT).show();
-                                imageFolder.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                                    @Override
-                                    public void onSuccess(final Uri uri) {
-                                        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
-                                            @Override
-                                            public void onSuccess(Account account) {
-                                                Map<String, Object> avatarUpdate = new HashMap<>();
-                                                avatarUpdate.put("avatarUrl", uri.toString());
+                            public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+                                if (task.isSuccessful()){
+                                    mDialog.dismiss();
+                                    Toast.makeText(DriverHome.this, "Uploaded!", Toast.LENGTH_SHORT).show();
+                                    imageFolder.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                        @Override
+                                        public void onSuccess(final Uri uri) {
+                                            AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+                                                @Override
+                                                public void onSuccess(Account account) {
+                                                    Map<String, Object> avatarUpdate = new HashMap<>();
+                                                    avatarUpdate.put("avatarUrl", uri.toString());
 
-                                                DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
-                                                driverInformation.child(account.getId())
-                                                        .updateChildren(avatarUpdate)
-                                                        .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                            @Override
-                                                            public void onComplete(@NonNull Task<Void> task) {
-                                                                if (task.isSuccessful())
-                                                                    Toast.makeText(DriverHome.this, "Uploaded!", Toast.LENGTH_SHORT).show();
-                                                                else
-                                                                    Toast.makeText(DriverHome.this, "Uploaded error!", Toast.LENGTH_SHORT).show();
-                                                            }
-                                                        });
-                                            }
+                                                    DatabaseReference driverInformation = FirebaseDatabase.getInstance()
+                                                            .getReference(Common.user_driver_tbl);
+                                                    driverInformation.child(account.getId())
+                                                            .updateChildren(avatarUpdate)
+                                                            .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                                @Override
+                                                                public void onComplete(@NonNull Task<Void> task) {
+                                                                    if (task.isSuccessful())
+                                                                        Toast.makeText(DriverHome.this, "Uploaded!", Toast.LENGTH_SHORT).show();
+                                                                    else
+                                                                        Toast.makeText(DriverHome.this, "Uploaded error!", Toast.LENGTH_SHORT).show();
+                                                                }
+                                                            });
+                                                }
 
-                                            @Override
-                                            public void onError(AccountKitError accountKitError) {
+                                                @Override
+                                                public void onError(AccountKitError accountKitError) {
 
-                                            }
-                                        });
+                                                }
+                                            });
 
-                                    }
-                                });
+                                        }
+                                    });
+                                }
                             }
                         })
-                        .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
-                            @Override
-                            public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
-                                double progress = (100.0 * taskSnapshot.getBytesTransferred() / taskSnapshot.getTotalByteCount());
-                                mDialog.setMessage("Uploaded " + progress + "%");
-                            }
-                        });
+                .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                        double progress = (100.0 * taskSnapshot.getBytesTransferred()
+                                / taskSnapshot.getTotalByteCount());
+                        mDialog.setMessage("Uploaded " + progress + "%");
+                    }
+                });
             }
         }
     }
@@ -930,7 +993,8 @@ public class DriverHome extends AppCompatActivity
         Intent intent = new Intent();
         intent.setType("image/*");
         intent.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(Intent.createChooser(intent, "Select Picture: "), Common.PICK_IMAGE_REQUEST);
+        startActivityForResult(Intent.createChooser(intent, "Select Picture: "),
+                Common.PICK_IMAGE_REQUEST);
 
 
     }
@@ -1000,381 +1064,59 @@ public class DriverHome extends AppCompatActivity
 
     }
 }
+    /*@Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == Common.PICK_IMAGE_REQUEST && resultCode == RESULT_OK
+                && data != null && data.getData() != null) {
+            Uri saveUri = data.getData();
+            if (saveUri != null) {
+                final ProgressDialog mDialog = new ProgressDialog(this);
+                mDialog.setMessage("Uploading...");
+                mDialog.show();
 
+                String imageName = currentUserRef.getKey();
+                final StorageReference imageFolder = storageReference.child("images/" + imageName);
+                imageFolder.putFile(saveUri)
+                        .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                            @Override
+                            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                                mDialog.dismiss();
+                                Toast.makeText(DriverHome.this, "Uploaded!", Toast.LENGTH_SHORT).show();
+                                imageFolder.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                    @Override
+                                    public void onSuccess(final Uri uri) {
+                                        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
+                                            @Override
+                                            public void onSuccess(Account account) {
+                                                Map<String, Object> avatarUpdate = new HashMap<>();
+                                                avatarUpdate.put("avatarUrl", uri.toString());
 
+                                                DatabaseReference driverInformation = FirebaseDatabase.getInstance()
+                                                        .getReference(Common.user_driver_tbl);
+                                                driverInformation.child(account.getId())
+                                                        .updateChildren(avatarUpdate)
+                                                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                            @Override
+                                                            public void onComplete(@NonNull Task<Void> task) {
+                                                                if (task.isSuccessful())
+                                                                    Toast.makeText(DriverHome.this, "Uploaded!", Toast.LENGTH_SHORT).show();
+                                                                else
+                                                                    Toast.makeText(DriverHome.this, "Uploaded error!", Toast.LENGTH_SHORT).show();
+                                                            }
+                                                        });
+                                            }
 
+                                            @Override
+                                            public void onError(AccountKitError accountKitError) {
 
+                                            }
+                                        });
 
-
-
-
-
-
-
-
-
-
-/*private void showRouteDialog() {
-        final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
-        dialog.setTitle("Choose Your Route");
-        //dialog.setMessage("Please use email to sign in");
-
-        LayoutInflater inflater = LayoutInflater.from(this);
-        View layout_route = inflater.inflate(R.layout.layout_update_route, null);
-
-        final RadioButton town = layout_route.findViewById(R.id.town_route);
-        final RadioButton central = layout_route.findViewById(R.id.central_route);
-        final RadioButton summer = layout_route.findViewById(R.id.summer_route);
-        final RadioButton forest = layout_route.findViewById(R.id.forest_route);
-        final RadioButton green = layout_route.findViewById(R.id.green_route);
-
-        switch (current_Driver.getRoute()) {
-            case "Town":
-                town.setChecked(true);
-                break;
-            case "Central":
-                central.setChecked(true);
-                break;
-            case "Summerstrand":
-                summer.setChecked(true);
-                break;
-            case "Forest Hill":
-                forest.setChecked(true);
-                break;
-            case "Greenacres":
-                green.setChecked(true);
-                break;
+                                    }
+                                });
+                            }
+                        });
+            }
         }
-
-        dialog.setView(layout_route);
-
-        dialog.setPositiveButton("UPDATE", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-                final android.app.AlertDialog waitingDialog = new SpotsDialog(DriverHome.this);
-                waitingDialog.show();
-
-                AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
-                    @Override
-                    public void onSuccess(final Account account) {
-
-                        Map<String, Object> updateInfo = new HashMap<>();
-                        if (town.isChecked())
-                            updateInfo.put("route", town.getText().toString());
-                        else if (central.isChecked())
-                            updateInfo.put("route", central.getText().toString());
-                        else if (summer.isChecked())
-                            updateInfo.put("route", summer.getText().toString());
-                        else if (forest.isChecked())
-                            updateInfo.put("route", forest.getText().toString());
-                        else if (green.isChecked())
-                            updateInfo.put("route", green.getText().toString());
-
-                        DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
-                        driverInformation.child(account.getId())
-                                .updateChildren(updateInfo)
-                                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<Void> task) {
-                                        if (task.isSuccessful()) {
-                                            currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
-                                                    .child(Common.current_Driver.getRoute())
-                                                    .child(account.getId());
-                                            Toast.makeText(DriverHome.this, "Route Updated!", Toast.LENGTH_SHORT).show();
-                                        }
-                                        else
-                                            Toast.makeText(DriverHome.this, "Route Update error!", Toast.LENGTH_SHORT).show();
-
-                                        waitingDialog.dismiss();
-                                    }
-                                });
-                        driverInformation.child(account.getId())
-                                .addListenerForSingleValueEvent(new ValueEventListener() {
-                                    @Override
-                                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                        current_Driver = dataSnapshot.getValue(SiyayaDriver.class);
-                                    }
-
-                                    @Override
-                                    public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                                    }
-                                });
-                    }
-
-                    @Override
-                    public void onError(AccountKitError accountKitError) {
-
-                    }
-                });
-            }
-        });
-
-        AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
-            @Override
-            public void onSuccess(final Account account) {
-
-                Map<String, Object> updateInfo = new HashMap<>();
-                if (town.isChecked())
-                    updateInfo.put("route", town.getText().toString());
-                else if (central.isChecked())
-                    updateInfo.put("route", central.getText().toString());
-                else if (summer.isChecked())
-                    updateInfo.put("route", summer.getText().toString());
-                else if (forest.isChecked())
-                    updateInfo.put("route", forest.getText().toString());
-                else if (green.isChecked())
-                    updateInfo.put("route", green.getText().toString());
-
-                DatabaseReference driverInformation = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
-                driverInformation.child(account.getId())
-                        .updateChildren(updateInfo)
-                        .addOnCompleteListener(new OnCompleteListener<Void>() {
-                            @Override
-                            public void onComplete(@NonNull Task<Void> task) {
-                                if (task.isSuccessful()) {
-                                    currentUserRef = FirebaseDatabase.getInstance().getReference(Common.driver_tbl)
-                                            .child(Common.current_Driver.getRoute())
-                                            .child(account.getId());
-                                    Toast.makeText(DriverHome.this, "Route Updated!", Toast.LENGTH_SHORT).show();
-                                } else
-                                    Toast.makeText(DriverHome.this, "Route Updated error!", Toast.LENGTH_SHORT).show();
-
-                                //waitingDialog.dismiss();
-                            }
-                        });
-                driverInformation.child(account.getId())
-                        .addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                current_Driver = dataSnapshot.getValue(SiyayaDriver.class);
-                            }
-
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                            }
-                        });
-            }
-
-            @Override
-            public void onError(AccountKitError accountKitError) {
-
-            }
-        });
-
-        dialog.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-        });
-
-        dialog.show();
     }*/
-
-
-
-/*
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-        displayLocation();
-        startLocationUpdates();
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-        mGoogleApiClient.connect();
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        Common.mLastLocation = location;
-        displayLocation();
-    }
-
-private void showChangePwdDialog() {
-        final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
-        dialog.setTitle("CHANGE PASSWORD ");
-        //dialog.setMessage("Please use email to sign in");
-
-        LayoutInflater inflater = LayoutInflater.from(this);
-        View layout_pwd = inflater.inflate(R.layout.layout_change_pwd,null);
-
-        final MaterialEditText edtPassword = layout_pwd.findViewById(R.id.edtPassword);
-        final MaterialEditText edtNewPassword = layout_pwd.findViewById(R.id.edtNewPassword);
-        final MaterialEditText edtConfirmNewPassword = layout_pwd.findViewById(R.id.edtConfirmNewPassword);
-
-        dialog.setView(layout_pwd);
-
-        dialog.setPositiveButton("Apply", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int which) {
-
-                final android.app.AlertDialog waitingDialog = new SpotsDialog(DriverHome.this);
-                waitingDialog.show();
-
-                if (TextUtils.isEmpty(edtNewPassword.getText().toString())) {
-                    Toast.makeText(DriverHome.this, "Please enter your new Password", Toast.LENGTH_SHORT)
-                            .show();
-                    return;
-                }
-
-                if (TextUtils.isEmpty(edtPassword.getText().toString())) {
-                    Toast.makeText(DriverHome.this, "Please enter your old Password", Toast.LENGTH_SHORT)
-                            .show();
-                    return;
-                }
-
-                if (TextUtils.isEmpty(edtConfirmNewPassword.getText().toString())) {
-                    Toast.makeText(DriverHome.this, "Please confirm your new Password", Toast.LENGTH_SHORT)
-                            .show();
-                    return;
-                }
-
-                if (edtPassword.getText().toString().length() < 6) {
-                    Toast.makeText(DriverHome.this, "Password too short !!! Must be 6 characters or more", Toast.LENGTH_SHORT)
-                            .show();
-                    return;
-                }
-
-                if (edtNewPassword.getText().toString().length() < 6) {
-                    Toast.makeText(DriverHome.this, "Password too short !!! Must be 6 characters or more", Toast.LENGTH_SHORT)
-                            .show();
-                    return;
-                }
-
-                if (edtNewPassword.getText().toString().equals(edtPassword.getText().toString())) {
-                    Toast.makeText(DriverHome.this, "Please enter a password that doesn't match your old one", Toast.LENGTH_SHORT)
-                            .show();
-                    return;
-                }
-
-                if (edtNewPassword.getText().toString().equals(edtConfirmNewPassword.getText().toString())) {
-                    String email = FirebaseAuth.getInstance().getCurrentUser().getEmail();
-                    AuthCredential credential = EmailAuthProvider.getCredential(email, edtPassword.getText().toString());
-                    FirebaseAuth.getInstance().getCurrentUser()
-                            .reauthenticate(credential)
-                            .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                @Override
-                                public void onComplete(@NonNull Task<Void> task) {
-                                    if(task.isSuccessful())
-                                    {
-                                        FirebaseAuth.getInstance().getCurrentUser()
-                                                .updatePassword(edtConfirmNewPassword.getText().toString())
-                                                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                    @Override
-                                                    public void onComplete(@NonNull Task<Void> task) {
-                                                        if(task.isSuccessful()){
-                                                            AccountKit.getCurrentAccount(new AccountKitCallback<Account>() {
-                                                                @Override
-                                                                public void onSuccess(Account account) {
-                                                                    Map<String,Object> password = new HashMap<>();
-
-                                                                    password.put("password", edtConfirmNewPassword.getText().toString());
-                                                                    DatabaseReference driverInfo = FirebaseDatabase.getInstance().getReference(Common.user_driver_tbl);
-
-                                                                    driverInfo.child(account.getId())
-                                                                            .updateChildren(password)
-                                                                            .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                                                @Override
-                                                                                public void onComplete(@NonNull Task<Void> task) {
-                                                                                    if(task.isSuccessful())
-                                                                                        Toast.makeText(DriverHome.this, "Password was changed!", Toast.LENGTH_SHORT).show();
-                                                                                    else
-                                                                                        Toast.makeText(DriverHome.this, "Password was changed, but not on our system!", Toast.LENGTH_SHORT).show();
-
-                                                                                    waitingDialog.dismiss();
-                                                                                }
-                                                                            });
-                                                                }
-
-                                                                @Override
-                                                                public void onError(AccountKitError accountKitError) {
-
-                                                                }
-                                                            });
-                                                        } else{
-                                                            Toast.makeText(DriverHome.this, "Error changing password", Toast.LENGTH_SHORT).show();
-                                                        }
-                                                    }
-                                                });
-                                    }else {
-                                        waitingDialog.dismiss();
-                                        Toast.makeText(DriverHome.this, "Wrong old password", Toast.LENGTH_SHORT).show();
-                                    }
-                                }
-                            });
-                }
-                else {
-                    waitingDialog.dismiss();
-                    Toast.makeText(DriverHome.this, "Password doesn't match", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-        dialog.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int which) {
-                dialogInterface.dismiss();
-            }
-        });
-        dialog.show();
-    }
-
-    private void startLocationUpdates() {
-        if(ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ){
-            return;
-        }
-        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest,this);
-    }
-
-    private void createLocationRequest() {
-        mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(UPDATE_INTERVAL);
-        mLocationRequest.setFastestInterval(FASTEST_INTERVAL);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        mLocationRequest.setSmallestDisplacement(DISPLACEMENT);
-    }
-
-    private void buildGoogleApiClient() {
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API)
-                .build();
-        mGoogleApiClient.connect();
-    }
-
-    private boolean checkPlayServices() {
-        int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
-        if(resultCode != ConnectionResult.SUCCESS)
-        {
-            if(GooglePlayServicesUtil.isUserRecoverableError(resultCode))
-                GooglePlayServicesUtil.getErrorDialog(resultCode,this,PLAY_SERVICE_RES_REQUEST).show();
-            else {
-                Toast.makeText(this,"This device is not supported", Toast.LENGTH_LONG).show();
-                finish();
-            }
-            return false;
-        }
-        return true;
-    }
-
-    private void stopLocationUpdates() {
-        if(ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ){
-            return;
-        }
-        FusedLocationApi.removeLocationUpdates(mGoogleApiClient,this);
-    }
-
- */
